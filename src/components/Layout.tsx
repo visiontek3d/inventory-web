@@ -22,28 +22,30 @@ export default function Layout({ children, title }: LayoutProps) {
   return (
     <div className="min-h-screen bg-[#0d0d0d] flex flex-col">
       {/* Full-width header */}
-      <header className="bg-black border-b border-[#1f1f1f] shrink-0 w-full">
-        <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center gap-3">
-          <img src="/logo.png" alt="VisionTek3D" className="h-9 w-auto object-contain shrink-0" />
-          <span className="text-white font-bold text-base tracking-wide flex-1 truncate">
+      <header className="bg-black border-b border-[#1f1f1f] shrink-0 w-full sticky top-0 z-20">
+        <div style={{ maxWidth: 800, margin: '0 auto', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <img src="/logo.png" alt="VisionTek3D" style={{ height: 36, width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
+          <span style={{ color: '#fff', fontWeight: 700, fontSize: 15, letterSpacing: '0.02em', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {title ?? 'Inventory Management'}
           </span>
-          <span className="text-[#555] text-xs hidden sm:block truncate max-w-[180px]">
+          <span style={{ color: '#444', fontSize: 12, display: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}
+            className="sm:block">
             {userEmail}
           </span>
           <button
             onClick={handleSignOut}
-            className="text-xs text-[#aaa] hover:text-white border border-[#2a2a2a] hover:border-[#0086A3]
-                       rounded px-3 py-1.5 transition-all duration-150 shrink-0"
+            style={{ fontSize: 12, color: '#888', border: '1px solid #2a2a2a', borderRadius: 6, padding: '6px 12px', background: 'transparent', cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s' }}
+            onMouseEnter={e => { (e.target as HTMLElement).style.color = '#fff'; (e.target as HTMLElement).style.borderColor = '#0086A3'; }}
+            onMouseLeave={e => { (e.target as HTMLElement).style.color = '#888'; (e.target as HTMLElement).style.borderColor = '#2a2a2a'; }}
           >
             Sign Out
           </button>
         </div>
       </header>
 
-      {/* Centered content */}
-      <main className="flex-1 flex flex-col">
-        <div className="max-w-4xl mx-auto w-full px-4 py-6 flex flex-col flex-1">
+      {/* Centered content area */}
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ maxWidth: 800, width: '100%', margin: '0 auto', padding: '24px 20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
           {children}
         </div>
       </main>
