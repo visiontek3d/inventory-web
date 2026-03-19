@@ -24,7 +24,6 @@ export default function Layout({ children, title }: LayoutProps) {
       {/* Full-width header */}
       <header className="bg-black border-b border-[#1f1f1f] shrink-0 w-full sticky top-0 z-20">
         <div style={{ maxWidth: 800, margin: '0 auto', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src="/logo.png" alt="VisionTek3D" style={{ height: 36, width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
           <span style={{ color: '#fff', fontWeight: 700, fontSize: 15, letterSpacing: '0.02em', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {title ?? 'Inventory Management'}
           </span>

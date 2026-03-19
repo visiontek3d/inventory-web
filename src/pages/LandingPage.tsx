@@ -66,42 +66,63 @@ function NavCard({ onClick, icon, label }: {
 }
 
 function DioramaIcon() {
+  // Isometric open-box diorama scene with building facade on back wall
   return (
-    <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-      {/* Backdrop/scene box */}
-      <rect x="8" y="16" width="48" height="36" rx="3" stroke="#0086A3" strokeWidth="2" fill="none" />
+    <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
       {/* Floor */}
-      <line x1="8" y1="42" x2="56" y2="42" stroke="#0086A3" strokeWidth="1.5" />
-      {/* Back wall */}
-      <line x1="8" y1="16" x2="8" y2="52" stroke="#0086A3" strokeWidth="1.5" />
-      {/* Perspective lines */}
-      <line x1="8" y1="16" x2="20" y2="10" stroke="#0086A3" strokeWidth="1.5" strokeDasharray="3 2" />
-      <line x1="56" y1="16" x2="20" y2="10" stroke="#0086A3" strokeWidth="1.5" strokeDasharray="3 2" />
-      <line x1="20" y1="10" x2="20" y2="46" stroke="#0086A3" strokeWidth="1.5" strokeDasharray="3 2" />
-      {/* Mini scene elements */}
-      <rect x="28" y="30" width="10" height="12" rx="1" fill="#0086A3" opacity="0.6" />
-      <rect x="42" y="34" width="7" height="8" rx="1" fill="#0086A3" opacity="0.4" />
-      <rect x="16" y="36" width="6" height="6" rx="1" fill="#0086A3" opacity="0.4" />
+      <polygon points="6,52 36,62 66,52 36,42" fill="#0086A3" opacity="0.15" stroke="#0086A3" strokeWidth="1.2" strokeLinejoin="round" />
+      {/* Left wall */}
+      <polygon points="6,28 6,52 36,62 36,38" fill="#0086A3" opacity="0.1" stroke="#0086A3" strokeWidth="1.2" strokeLinejoin="round" />
+      {/* Back wall (main facade) */}
+      <polygon points="6,28 36,18 66,28 36,38" fill="#1a1a1a" stroke="#0086A3" strokeWidth="1.5" strokeLinejoin="round" />
+      {/* Building facade on back wall - sign strip */}
+      <polygon points="12,29 36,21 60,29 36,37" fill="#0086A3" opacity="0.2" />
+      {/* Sign banner */}
+      <polygon points="18,27.5 36,22 54,27.5 36,33" fill="#0086A3" opacity="0.5" />
+      {/* Windows row */}
+      <polygon points="13,31 22,28 22,32 13,35" fill="#0086A3" opacity="0.6" />
+      <polygon points="25,29.5 34,27 34,31 25,33.5" fill="#0086A3" opacity="0.6" />
+      <polygon points="38,27 47,29.5 47,33.5 38,31" fill="#0086A3" opacity="0.6" />
+      <polygon points="50,28 59,31 59,35 50,32" fill="#0086A3" opacity="0.6" />
+      {/* Door */}
+      <polygon points="33,31 39,29 39,37 33,39" fill="#0086A3" opacity="0.8" />
+      {/* Parking lines on floor */}
+      <line x1="24" y1="58" x2="30" y2="44" stroke="#0086A3" strokeWidth="0.8" opacity="0.5" />
+      <line x1="36" y1="62" x2="36" y2="46" stroke="#0086A3" strokeWidth="0.8" opacity="0.5" />
+      <line x1="48" y1="58" x2="42" y2="44" stroke="#0086A3" strokeWidth="0.8" opacity="0.5" />
     </svg>
   );
 }
 
 function LiftIcon() {
+  // Two lifts side by side: small 2-high (left) and taller 3-high (right)
   return (
-    <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-      {/* Car silhouette on platform */}
-      <rect x="12" y="44" width="40" height="6" rx="2" fill="#0086A3" opacity="0.8" />
-      {/* Platform post left */}
-      <rect x="15" y="18" width="4" height="26" rx="1" fill="#0086A3" opacity="0.5" />
-      {/* Platform post right */}
-      <rect x="45" y="18" width="4" height="26" rx="1" fill="#0086A3" opacity="0.5" />
-      {/* Upper lift arm */}
-      <rect x="15" y="28" width="34" height="4" rx="2" fill="#0086A3" opacity="0.9" />
-      {/* Lower lift arm */}
-      <rect x="15" y="38" width="34" height="4" rx="2" fill="#0086A3" opacity="0.6" />
-      {/* Up arrows */}
-      <path d="M30 14 L32 10 L34 14" stroke="#0086A3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <path d="M26 17 L32 11 L38 17" stroke="#0086A3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.5" />
+    <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+      {/* === 2-HIGH LIFT (left, smaller) === */}
+      {/* Posts */}
+      <rect x="8"  y="38" width="5" height="22" rx="1.5" fill="#0086A3" opacity="0.7" />
+      <rect x="23" y="38" width="5" height="22" rx="1.5" fill="#0086A3" opacity="0.7" />
+      {/* Cross beams (black arms) */}
+      <rect x="6"  y="38" width="24" height="4" rx="1" fill="#444" stroke="#0086A3" strokeWidth="0.8" />
+      <rect x="6"  y="48" width="24" height="3" rx="1" fill="#333" />
+      {/* Base */}
+      <rect x="6"  y="58" width="24" height="3" rx="1" fill="#222" stroke="#0086A3" strokeWidth="0.8" opacity="0.6" />
+
+      {/* === 3-HIGH LIFT (right, taller) === */}
+      {/* Posts */}
+      <rect x="40" y="20" width="5" height="42" rx="1.5" fill="#0086A3" />
+      <rect x="57" y="20" width="5" height="42" rx="1.5" fill="#0086A3" />
+      {/* Top arm */}
+      <rect x="38" y="22" width="26" height="4" rx="1" fill="#444" stroke="#0086A3" strokeWidth="0.8" />
+      {/* Middle arm */}
+      <rect x="38" y="37" width="26" height="4" rx="1" fill="#444" stroke="#0086A3" strokeWidth="0.8" />
+      {/* Angled support tabs */}
+      <rect x="40" y="26" width="8" height="3" rx="0.5" fill="#555" transform="rotate(-10 40 26)" />
+      <rect x="54" y="26" width="8" height="3" rx="0.5" fill="#555" transform="rotate(10 62 26)" />
+      <rect x="40" y="41" width="8" height="3" rx="0.5" fill="#555" transform="rotate(-10 40 41)" />
+      <rect x="54" y="41" width="8" height="3" rx="0.5" fill="#555" transform="rotate(10 62 41)" />
+      {/* Base */}
+      <rect x="38" y="58" width="26" height="3" rx="1" fill="#222" stroke="#0086A3" strokeWidth="0.8" opacity="0.6" />
     </svg>
   );
 }
