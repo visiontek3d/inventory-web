@@ -59,12 +59,30 @@ export default function DioramaAddEditPage() {
     }
   }
 
+  async function compressPhoto(file: File): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxWidth = 1200;
+        const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Compression failed')), 'image/jpeg', 0.8);
+      };
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
   async function uploadPhoto(skuKey: string): Promise<string | null> {
     if (!photoFile) return existingPhotoUrl;
-    const ext = photoFile.name.split('.').pop() ?? 'jpg';
-    const { error } = await supabase.storage.from('diorama-photos').upload(`${skuKey}.${ext}`, photoFile, { upsert: true });
+    const compressed = await compressPhoto(photoFile);
+    const fileName = `${skuKey}.jpg`;
+    const { error } = await supabase.storage.from('diorama-photos').upload(fileName, compressed, { contentType: 'image/jpeg', upsert: true });
     if (error) throw new Error(`Photo upload failed: ${error.message}`);
-    return supabase.storage.from('diorama-photos').getPublicUrl(`${skuKey}.${ext}`).data.publicUrl;
+    return supabase.storage.from('diorama-photos').getPublicUrl(fileName).data.publicUrl;
   }
 
   async function handleSubmit(e: FormEvent) {
