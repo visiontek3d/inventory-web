@@ -4,6 +4,12 @@ import Layout from '../components/Layout';
 import { supabase } from '../lib/supabase';
 import type { Diorama } from '../types';
 
+const S = {
+  input: { background: '#161616', border: '1px solid #2a2a2a', borderRadius: 7, color: '#f0f0f0', padding: '9px 12px', fontSize: 14, width: '100%', outline: 'none', transition: 'border-color 0.15s' } as React.CSSProperties,
+  label: { color: '#7A7A7A', fontSize: 12, fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase' as const, marginBottom: 6, display: 'block' },
+  card: { background: '#1a1a1a', border: '1px solid #222', borderRadius: 10, padding: '16px 20px' },
+};
+
 export default function DioramaAddEditPage() {
   const { sku } = useParams<{ sku: string }>();
   const navigate = useNavigate();
@@ -15,32 +21,20 @@ export default function DioramaAddEditPage() {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form fields
   const [formSku, setFormSku] = useState('');
   const [description, setDescription] = useState('');
   const [carryStock, setCarryStock] = useState(false);
-  const [isOneOff, setIsOneOff] = useState(false);
   const [qtyWalls, setQtyWalls] = useState(0);
   const [qtyDoor, setQtyDoor] = useState(0);
   const [qtyLift, setQtyLift] = useState(0);
-  const [oneOffQty, setOneOffQty] = useState(0);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isEditing) return;
-    async function load() {
-      const { data, error } = await supabase
-        .from('dioramas')
-        .select('*')
-        .eq('sku', decodedSku)
-        .single();
-      if (error || !data) {
-        setError('Failed to load diorama.');
-        setLoading(false);
-        return;
-      }
+    supabase.from('dioramas').select('*').eq('sku', decodedSku).single().then(({ data, error }) => {
+      if (error || !data) { setError('Failed to load diorama.'); setLoading(false); return; }
       const d = data as Diorama;
       setFormSku(d.sku);
       setDescription(d.description);
@@ -48,11 +42,9 @@ export default function DioramaAddEditPage() {
       setQtyWalls(d.walls_qty ?? 0);
       setQtyDoor(d.open_door_qty ?? 0);
       setQtyLift(d.lift_qty ?? 0);
-      setOneOffQty(d.one_off_qty ?? 0);
       setExistingPhotoUrl(d.photo_url);
       setLoading(false);
-    }
-    load();
+    });
   }, [isEditing, decodedSku]);
 
   function handlePhotoChange(e: ChangeEvent<HTMLInputElement>) {
@@ -70,13 +62,9 @@ export default function DioramaAddEditPage() {
   async function uploadPhoto(skuKey: string): Promise<string | null> {
     if (!photoFile) return existingPhotoUrl;
     const ext = photoFile.name.split('.').pop() ?? 'jpg';
-    const path = `${skuKey}.${ext}`;
-    const { error } = await supabase.storage
-      .from('diorama-photos')
-      .upload(path, photoFile, { upsert: true });
+    const { error } = await supabase.storage.from('diorama-photos').upload(`${skuKey}.${ext}`, photoFile, { upsert: true });
     if (error) throw new Error(`Photo upload failed: ${error.message}`);
-    const { data } = supabase.storage.from('diorama-photos').getPublicUrl(path);
-    return data.publicUrl;
+    return supabase.storage.from('diorama-photos').getPublicUrl(`${skuKey}.${ext}`).data.publicUrl;
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -87,21 +75,8 @@ export default function DioramaAddEditPage() {
       const skuKey = isEditing ? decodedSku : formSku.trim().toUpperCase();
       if (!skuKey) throw new Error('SKU is required.');
       if (!description.trim()) throw new Error('Description is required.');
-
       const photoUrl = await uploadPhoto(skuKey);
-
-      const record = {
-        sku: skuKey,
-        description: description.trim(),
-        carry_stock: carryStock,
-        is_one_off: isOneOff,
-        qty_walls: isOneOff ? 0 : qtyWalls,
-        qty_open_door: isOneOff ? 0 : qtyDoor,
-        qty_lift: isOneOff ? 0 : qtyLift,
-        one_off_qty: isOneOff ? oneOffQty : 0,
-        photo_url: photoUrl,
-      };
-
+      const record = { sku: skuKey, description: description.trim(), carry_stock: carryStock, walls_qty: qtyWalls, open_door_qty: qtyDoor, lift_qty: qtyLift, photo_url: photoUrl };
       if (isEditing) {
         const { error } = await supabase.from('dioramas').update(record).eq('sku', decodedSku);
         if (error) throw error;
@@ -109,7 +84,6 @@ export default function DioramaAddEditPage() {
         const { error } = await supabase.from('dioramas').insert(record);
         if (error) throw error;
       }
-
       navigate(`/dioramas/${encodeURIComponent(skuKey)}`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Save failed.');
@@ -119,141 +93,88 @@ export default function DioramaAddEditPage() {
   }
 
   async function handleDelete() {
-    if (!isEditing) return;
-    if (!window.confirm(`Delete diorama "${decodedSku}"? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete "${decodedSku}"? This cannot be undone.`)) return;
     setDeleting(true);
     const { error } = await supabase.from('dioramas').delete().eq('sku', decodedSku);
-    if (error) {
-      setError(error.message);
-      setDeleting(false);
-    } else {
-      navigate('/dioramas');
-    }
+    if (error) { setError(error.message); setDeleting(false); }
+    else navigate('/dioramas');
   }
 
-  if (loading) {
-    return (
-      <Layout title={isEditing ? 'Edit Diorama' : 'Add Diorama'}>
-        <div className="flex justify-center py-16">
-          <div className="w-8 h-8 border-4 border-[#0086A3] border-t-transparent rounded-full animate-spin" />
-        </div>
-      </Layout>
-    );
-  }
+  if (loading) return (
+    <Layout title={isEditing ? 'Edit Diorama' : 'Add Diorama'}>
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '64px 0' }}><div className="spinner" /></div>
+    </Layout>
+  );
 
   return (
     <Layout title={isEditing ? `Edit: ${decodedSku}` : 'Add Diorama'}>
-      <div className="max-w-lg mx-auto w-full p-4 flex flex-col gap-4">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* Back */}
-        <button
-          onClick={() => navigate(isEditing ? `/dioramas/${encodeURIComponent(decodedSku)}` : '/dioramas')}
-          className="text-[#7A7A7A] hover:text-white text-sm flex items-center gap-1 transition-colors self-start"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back
-        </button>
+        <BackButton onClick={() => navigate(isEditing ? `/dioramas/${encodeURIComponent(decodedSku)}` : '/dioramas')} />
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {/* SKU */}
-          <Field label="SKU">
-            <input
-              type="text"
-              required
-              disabled={isEditing}
-              value={formSku}
-              onChange={e => setFormSku(e.target.value)}
-              className="bg-[#111111] border border-[#333333] rounded px-3 py-2 text-white text-sm
-                         focus:outline-none focus:border-[#0086A3] transition-colors w-full
-                         disabled:opacity-50 disabled:cursor-not-allowed"
-              placeholder="e.g. DIO-001"
-            />
-          </Field>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-          {/* Description */}
-          <Field label="Description">
-            <input
-              type="text"
-              required
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              className="bg-[#111111] border border-[#333333] rounded px-3 py-2 text-white text-sm
-                         focus:outline-none focus:border-[#0086A3] transition-colors w-full"
-              placeholder="Enter description"
-            />
-          </Field>
-
-          {/* Toggles */}
-          <div className="flex gap-4 flex-wrap">
-            <Toggle label="Carry Stock" checked={carryStock} onChange={setCarryStock} />
-            <Toggle label="One Off" checked={isOneOff} onChange={setIsOneOff} />
+          {/* SKU + Description */}
+          <div style={S.card}>
+            <p className="section-label">Details</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={S.label}>SKU</label>
+                <input style={{ ...S.input, opacity: isEditing ? 0.5 : 1 }} type="text" required disabled={isEditing}
+                  value={formSku} onChange={e => setFormSku(e.target.value)} placeholder="e.g. DIO-001"
+                  onFocus={e => (e.target.style.borderColor = '#0086A3')} onBlur={e => (e.target.style.borderColor = '#2a2a2a')} />
+              </div>
+              <div>
+                <label style={S.label}>Description</label>
+                <input style={S.input} type="text" required value={description} onChange={e => setDescription(e.target.value)}
+                  placeholder="Enter description"
+                  onFocus={e => (e.target.style.borderColor = '#0086A3')} onBlur={e => (e.target.style.borderColor = '#2a2a2a')} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 4 }}>
+                <Toggle label="Carry Stock" checked={carryStock} onChange={setCarryStock} />
+              </div>
+            </div>
           </div>
 
           {/* Photo */}
-          <Field label="Photo">
-            <div className="flex flex-col gap-2">
+          <div style={S.card}>
+            <p className="section-label">Photo</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {(photoPreview ?? existingPhotoUrl) && (
-                <img
-                  src={photoPreview ?? existingPhotoUrl ?? ''}
-                  alt="Preview"
-                  className="w-32 h-32 object-cover rounded border border-[#333333]"
-                />
+                <img src={photoPreview ?? existingPhotoUrl ?? ''} alt="Preview"
+                  style={{ width: 128, height: 128, objectFit: 'cover', borderRadius: 8, border: '1px solid #2a2a2a' }} />
               )}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoChange}
-                className="text-sm text-[#7A7A7A] file:mr-3 file:py-1 file:px-3 file:rounded
-                           file:border-0 file:text-sm file:bg-[#0086A3] file:text-white
-                           file:cursor-pointer hover:file:bg-[#006f87]"
-              />
+              <input type="file" accept="image/*" onChange={handlePhotoChange}
+                style={{ fontSize: 13, color: '#7A7A7A' }}
+                className="file:mr-3 file:py-1.5 file:px-4 file:rounded-md file:border-0 file:text-sm file:bg-[#0086A3] file:text-white file:cursor-pointer hover:file:bg-[#0098b8]" />
             </div>
-          </Field>
+          </div>
 
           {/* Quantities */}
-          {!isOneOff ? (
-            <div className="bg-[#1e1e1e] rounded-lg border border-[#333333] p-4 flex flex-col gap-3">
-              <p className="text-[#7A7A7A] text-xs uppercase tracking-wider">
-                {isEditing ? 'Current Quantities' : 'Initial Quantities'}
-              </p>
+          <div style={S.card}>
+            <p className="section-label">{isEditing ? 'Quantities' : 'Initial Quantities'}</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <NumberField label="Walls" value={qtyWalls} onChange={setQtyWalls} />
               <NumberField label="Open Door" value={qtyDoor} onChange={setQtyDoor} />
               <NumberField label="Lift" value={qtyLift} onChange={setQtyLift} />
             </div>
-          ) : (
-            <div className="bg-[#1e1e1e] rounded-lg border border-[#333333] p-4 flex flex-col gap-3">
-              <p className="text-[#7A7A7A] text-xs uppercase tracking-wider">
-                {isEditing ? 'Current Quantity' : 'Initial Quantity'}
-              </p>
-              <NumberField label="One Off Qty" value={oneOffQty} onChange={setOneOffQty} />
-            </div>
-          )}
+          </div>
 
           {error && (
-            <p className="text-red-400 text-sm bg-red-900/20 border border-red-800 rounded px-3 py-2">
+            <p style={{ color: '#f87171', fontSize: 13, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '10px 14px' }}>
               {error}
             </p>
           )}
 
           {/* Actions */}
-          <div className="flex gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 bg-[#0086A3] hover:bg-[#006f87] disabled:opacity-50 text-white
-                         font-semibold rounded px-4 py-2 transition-colors"
-            >
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button type="submit" disabled={saving}
+              style={{ flex: 1, background: saving ? '#005f75' : '#0086A3', color: '#fff', border: 'none', borderRadius: 8, padding: '11px 20px', fontSize: 14, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', transition: 'background 0.15s' }}>
               {saving ? 'Saving…' : isEditing ? 'Save Changes' : 'Add Diorama'}
             </button>
             {isEditing && (
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={deleting}
-                className="bg-red-900/40 hover:bg-red-900/70 disabled:opacity-50 text-red-400
-                           border border-red-800 font-semibold rounded px-4 py-2 transition-colors"
-              >
+              <button type="button" onClick={handleDelete} disabled={deleting}
+                style={{ background: 'rgba(239,68,68,0.08)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '11px 20px', fontSize: 14, fontWeight: 600, cursor: deleting ? 'not-allowed' : 'pointer', transition: 'background 0.15s' }}>
                 {deleting ? 'Deleting…' : 'Delete'}
               </button>
             )}
@@ -264,45 +185,41 @@ export default function DioramaAddEditPage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function BackButton({ onClick }: { onClick: () => void }) {
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-[#7A7A7A] text-sm">{label}</label>
-      {children}
-    </div>
+    <button onClick={onClick}
+      style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#555', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: 'fit-content' }}
+      onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+      onMouseLeave={e => (e.currentTarget.style.color = '#555')}>
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+      </svg>
+      Back
+    </button>
   );
 }
 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <label className="flex items-center gap-2 cursor-pointer select-none">
-      <div
-        onClick={() => onChange(!checked)}
-        className={`relative w-10 h-6 rounded-full transition-colors ${checked ? 'bg-[#0086A3]' : 'bg-[#333333]'}`}
-      >
-        <div
-          className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform
-                      ${checked ? 'translate-x-5' : 'translate-x-1'}`}
-        />
+    <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
+      <div onClick={() => onChange(!checked)}
+        style={{ position: 'relative', width: 40, height: 22, borderRadius: 11, background: checked ? '#0086A3' : '#2a2a2a', transition: 'background 0.2s', cursor: 'pointer', flexShrink: 0 }}>
+        <div style={{ position: 'absolute', top: 3, left: checked ? 21 : 3, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s' }} />
       </div>
-      <span className="text-white text-sm">{label}</span>
+      <span style={{ color: '#f0f0f0', fontSize: 14 }}>{label}</span>
     </label>
   );
 }
 
 function NumberField({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
-    <div className="flex items-center gap-3">
-      <span className="text-white text-sm w-24 shrink-0">{label}</span>
-      <input
-        type="number"
-        min={0}
-        value={value}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <span style={{ color: '#aaa', fontSize: 14, width: 90, flexShrink: 0 }}>{label}</span>
+      <input type="number" min={0} value={value}
         onChange={e => onChange(Math.max(0, parseInt(e.target.value, 10) || 0))}
-        className="w-20 bg-[#111111] border border-[#333333] rounded px-2 py-1 text-white text-sm
-                   text-center focus:outline-none focus:border-[#0086A3] transition-colors"
-      />
+        style={{ width: 80, background: '#161616', border: '1px solid #2a2a2a', borderRadius: 7, color: '#f0f0f0', fontSize: 14, padding: '7px 10px', textAlign: 'center', outline: 'none' }}
+        onFocus={e => (e.target.style.borderColor = '#0086A3')}
+        onBlur={e => (e.target.style.borderColor = '#2a2a2a')} />
     </div>
   );
 }
-

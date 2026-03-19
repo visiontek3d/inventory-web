@@ -40,18 +40,32 @@ export default function DioramaListPage() {
   return (
     <Layout title="Dioramas">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
-        {/* Back to home */}
-        <button
-          onClick={() => navigate('/')}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#555', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: 'fit-content', transition: 'color 0.15s' }}
-          onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-          onMouseLeave={e => (e.currentTarget.style.color = '#555')}
-        >
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Home
-        </button>
+        {/* Top bar: back + add */}
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <button
+            onClick={() => navigate('/')}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#555', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', padding: 0, transition: 'color 0.15s' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#555')}
+          >
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Home
+          </button>
+          <div style={{ flex: 1 }} />
+          <button
+            onClick={() => navigate('/dioramas/new')}
+            style={{ background: '#0086A3', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'background 0.15s', display: 'flex', alignItems: 'center', gap: 6 }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#0098b8')}
+            onMouseLeave={e => (e.currentTarget.style.background = '#0086A3')}
+          >
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Diorama
+          </button>
+        </div>
 
         {/* Search */}
         <input
@@ -149,14 +163,6 @@ export default function DioramaListPage() {
         )}
       </div>
 
-      {/* FAB */}
-      <button
-        onClick={() => navigate('/dioramas/new')}
-        style={{ position: 'fixed', bottom: 32, right: 32, width: 48, height: 48, background: '#0086A3', color: '#fff', border: '1px solid #00a0bf', borderRadius: '50%', fontSize: 24, fontWeight: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(0,134,163,0.4)', cursor: 'pointer', zIndex: 10, transition: 'all 0.15s' }}
-        aria-label="Add diorama"
-      >
-        +
-      </button>
     </Layout>
   );
 }

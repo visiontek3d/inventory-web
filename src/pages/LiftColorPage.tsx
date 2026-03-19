@@ -13,6 +13,12 @@ interface ColorForm {
 
 const EMPTY_FORM: ColorForm = { name: '', color_hex: '#0086A3', has_2high: true, has_3high: false };
 
+const S = {
+  input: { background: '#161616', border: '1px solid #2a2a2a', borderRadius: 7, color: '#f0f0f0', padding: '9px 12px', fontSize: 14, width: '100%', outline: 'none', transition: 'border-color 0.15s' } as React.CSSProperties,
+  label: { color: '#7A7A7A', fontSize: 12, fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase' as const, marginBottom: 6, display: 'block' },
+  card: { background: '#1a1a1a', border: '1px solid #222', borderRadius: 10, padding: '16px 20px' } as React.CSSProperties,
+};
+
 export default function LiftColorPage() {
   const navigate = useNavigate();
   const [colors, setColors] = useState<LiftColor[]>([]);
@@ -21,13 +27,10 @@ export default function LiftColorPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Form state: null = closed, number = editing id, 'new' = adding
   const [formMode, setFormMode] = useState<null | 'new' | number>(null);
   const [form, setForm] = useState<ColorForm>(EMPTY_FORM);
 
-  useEffect(() => {
-    loadColors();
-  }, []);
+  useEffect(() => { loadColors(); }, []);
 
   async function loadColors() {
     setLoading(true);
@@ -36,22 +39,9 @@ export default function LiftColorPage() {
     setLoading(false);
   }
 
-  function openAdd() {
-    setForm(EMPTY_FORM);
-    setFormMode('new');
-    setError(null);
-  }
-
-  function openEdit(c: LiftColor) {
-    setForm({ name: c.name, color_hex: c.color_hex, has_2high: c.has_2high, has_3high: c.has_3high });
-    setFormMode(c.id);
-    setError(null);
-  }
-
-  function closeForm() {
-    setFormMode(null);
-    setError(null);
-  }
+  function openAdd() { setForm(EMPTY_FORM); setFormMode('new'); setError(null); }
+  function openEdit(c: LiftColor) { setForm({ name: c.name, color_hex: c.color_hex, has_2high: c.has_2high, has_3high: c.has_3high }); setFormMode(c.id); setError(null); }
+  function closeForm() { setFormMode(null); setError(null); }
 
   async function handleSave(e: FormEvent) {
     e.preventDefault();
@@ -67,36 +57,16 @@ export default function LiftColorPage() {
         const maxSort = colors.length > 0 ? Math.max(...colors.map(c => c.sort_order)) : 0;
         const { data: inserted, error: insertErr } = await supabase
           .from('lift_colors')
-          .insert({
-            name: form.name.trim(),
-            color_hex: form.color_hex,
-            has_2high: form.has_2high,
-            has_3high: form.has_3high,
-            sort_order: maxSort + 1,
-          })
-          .select()
-          .single();
+          .insert({ name: form.name.trim(), color_hex: form.color_hex, has_2high: form.has_2high, has_3high: form.has_3high, sort_order: maxSort + 1 })
+          .select().single();
 
         if (insertErr) throw insertErr;
         if (inserted) {
           const newColor = inserted as LiftColor;
-          // Insert lift rows for each enabled size and variation
           const liftRows: { size: string; variation: string; color: string; qty: number }[] = [];
-          const sizes2high = ['2-High'];
-          const sizes3high = ['3-High'];
-          const variations = ['Primary Lift', 'Extender'];
-
-          (form.has_2high ? sizes2high : []).forEach(size => {
-            variations.forEach(variation => {
-              liftRows.push({ size, variation, color: newColor.name, qty: 0 });
-            });
-          });
-          (form.has_3high ? sizes3high : []).forEach(size => {
-            variations.forEach(variation => {
-              liftRows.push({ size, variation, color: newColor.name, qty: 0 });
-            });
-          });
-
+          const variations = ['primary', 'extender'];
+          if (form.has_2high) variations.forEach(v => liftRows.push({ size: '2high', variation: v, color: newColor.name, qty: 0 }));
+          if (form.has_3high) variations.forEach(v => liftRows.push({ size: '3high', variation: v, color: newColor.name, qty: 0 }));
           if (liftRows.length > 0) {
             const { error: liftErr } = await supabase.from('lifts').insert(liftRows);
             if (liftErr) throw liftErr;
@@ -104,36 +74,17 @@ export default function LiftColorPage() {
         }
       } else if (typeof formMode === 'number') {
         const originalColor = colors.find(c => c.id === formMode);
-
-        const { error: updateErr } = await supabase
-          .from('lift_colors')
-          .update({
-            name: form.name.trim(),
-            color_hex: form.color_hex,
-            has_2high: form.has_2high,
-            has_3high: form.has_3high,
-          })
+        const { error: updateErr } = await supabase.from('lift_colors')
+          .update({ name: form.name.trim(), color_hex: form.color_hex, has_2high: form.has_2high, has_3high: form.has_3high })
           .eq('id', formMode);
-
         if (updateErr) throw updateErr;
 
-        // Handle new size combinations added
         if (originalColor) {
-          const variations = ['Primary Lift', 'Extender'];
+          const variations = ['primary', 'extender'];
           const toAdd: { size: string; variation: string; color: string; qty: number }[] = [];
-
-          if (form.has_2high && !originalColor.has_2high) {
-            variations.forEach(v => toAdd.push({ size: '2-High', variation: v, color: form.name.trim(), qty: 0 }));
-          }
-          if (form.has_3high && !originalColor.has_3high) {
-            variations.forEach(v => toAdd.push({ size: '3-High', variation: v, color: form.name.trim(), qty: 0 }));
-          }
-
-          if (toAdd.length > 0) {
-            await supabase.from('lifts').insert(toAdd);
-          }
-
-          // If name changed, update lift rows
+          if (form.has_2high && !originalColor.has_2high) variations.forEach(v => toAdd.push({ size: '2high', variation: v, color: form.name.trim(), qty: 0 }));
+          if (form.has_3high && !originalColor.has_3high) variations.forEach(v => toAdd.push({ size: '3high', variation: v, color: form.name.trim(), qty: 0 }));
+          if (toAdd.length > 0) await supabase.from('lifts').insert(toAdd);
           if (originalColor.name !== form.name.trim()) {
             await supabase.from('lifts').update({ color: form.name.trim() }).eq('color', originalColor.name);
           }
@@ -154,7 +105,6 @@ export default function LiftColorPage() {
     if (!c) return;
     if (!window.confirm(`Delete color "${c.name}"? All associated lift records will also be deleted.`)) return;
     setDeletingId(id);
-    // Delete lifts with this color name
     await supabase.from('lifts').delete().eq('color', c.name);
     const { error } = await supabase.from('lift_colors').delete().eq('id', id);
     if (error) setError(error.message);
@@ -164,120 +114,104 @@ export default function LiftColorPage() {
 
   return (
     <Layout title="Lift Colors">
-      <div className="max-w-lg mx-auto w-full p-4 flex flex-col gap-4">
-        {/* Back + Add */}
-        <div className="flex items-center gap-3">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+        {/* Top bar */}
+        <div style={{ display: 'flex', alignItems: 'center' }}>
           <button
             onClick={() => navigate('/lifts')}
-            className="text-[#7A7A7A] hover:text-white text-sm flex items-center gap-1 transition-colors"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#555', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', padding: 0, transition: 'color 0.15s' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#555')}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             Back
           </button>
-          <div className="flex-1" />
+          <div style={{ flex: 1 }} />
           <button
             onClick={openAdd}
-            className="bg-[#0086A3] hover:bg-[#006f87] text-white text-sm font-semibold
-                       rounded px-3 py-1.5 transition-colors"
+            style={{ background: '#0086A3', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'background 0.15s' }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#0098b8')}
+            onMouseLeave={e => (e.currentTarget.style.background = '#0086A3')}
           >
             + Add Color
           </button>
         </div>
 
         {error && (
-          <p className="text-red-400 text-sm bg-red-900/20 border border-red-800 rounded px-3 py-2">
+          <p style={{ color: '#f87171', fontSize: 13, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '10px 14px' }}>
             {error}
           </p>
         )}
 
         {/* Inline form */}
         {formMode !== null && (
-          <form
-            onSubmit={handleSave}
-            className="bg-[#1e1e1e] rounded-lg border border-[#0086A3] p-4 flex flex-col gap-4"
-          >
-            <p className="text-white font-semibold">{formMode === 'new' ? 'Add Color' : 'Edit Color'}</p>
+          <form onSubmit={handleSave} style={{ ...S.card, border: '1px solid #0086A3', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <p style={{ color: '#f0f0f0', fontWeight: 600, fontSize: 14, margin: 0 }}>
+              {formMode === 'new' ? 'Add Color' : 'Edit Color'}
+            </p>
 
             {/* Name */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[#7A7A7A] text-sm">Name</label>
-              <input
-                type="text"
-                required
-                value={form.name}
+            <div>
+              <label style={S.label}>Name</label>
+              <input style={S.input} type="text" required value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                className="bg-[#111111] border border-[#333333] rounded px-3 py-2 text-white text-sm
-                           focus:outline-none focus:border-[#0086A3] transition-colors"
                 placeholder="e.g. Glacier Blue"
-              />
+                onFocus={e => (e.target.style.borderColor = '#0086A3')}
+                onBlur={e => (e.target.style.borderColor = '#2a2a2a')} />
             </div>
 
-            {/* Color hex + preview */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[#7A7A7A] text-sm">Color (hex)</label>
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded border border-[#333333] shrink-0"
-                  style={{ backgroundColor: form.color_hex.match(/^#[0-9a-fA-F]{6}$/) ? form.color_hex : '#333333' }}
-                />
-                <input
-                  type="text"
-                  value={form.color_hex}
+            {/* Color hex + pickers */}
+            <div>
+              <label style={S.label}>Color (hex)</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 8, flexShrink: 0, border: '1px solid #2a2a2a', background: form.color_hex.match(/^#[0-9a-fA-F]{6}$/) ? form.color_hex : '#333' }} />
+                <input style={{ ...S.input, width: 'auto', flex: 1 }} type="text" value={form.color_hex} maxLength={7}
                   onChange={e => setForm(f => ({ ...f, color_hex: e.target.value }))}
-                  className="bg-[#111111] border border-[#333333] rounded px-3 py-2 text-white text-sm
-                             focus:outline-none focus:border-[#0086A3] transition-colors flex-1"
                   placeholder="#0086A3"
-                  maxLength={7}
-                />
-                <input
-                  type="color"
+                  onFocus={e => (e.target.style.borderColor = '#0086A3')}
+                  onBlur={e => (e.target.style.borderColor = '#2a2a2a')} />
+                <input type="color"
                   value={form.color_hex.match(/^#[0-9a-fA-F]{6}$/) ? form.color_hex : '#000000'}
                   onChange={e => setForm(f => ({ ...f, color_hex: e.target.value }))}
-                  className="w-10 h-10 rounded border border-[#333333] bg-[#111111] cursor-pointer p-0.5"
-                />
+                  style={{ width: 40, height: 40, borderRadius: 8, border: '1px solid #2a2a2a', background: '#161616', cursor: 'pointer', padding: 2, flexShrink: 0 }} />
               </div>
             </div>
 
-            {/* Size toggles */}
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={form.has_2high}
-                  onChange={e => setForm(f => ({ ...f, has_2high: e.target.checked }))}
-                  className="accent-[#0086A3] w-4 h-4"
-                />
-                <span className="text-white text-sm">2-High</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={form.has_3high}
-                  onChange={e => setForm(f => ({ ...f, has_3high: e.target.checked }))}
-                  className="accent-[#0086A3] w-4 h-4"
-                />
-                <span className="text-white text-sm">3-High</span>
-              </label>
+            {/* Size checkboxes */}
+            <div>
+              <label style={S.label}>Available Sizes</label>
+              <div style={{ display: 'flex', gap: 20 }}>
+                {([{ key: 'has_2high', label: '2-High' }, { key: 'has_3high', label: '3-High' }] as const).map(({ key, label }) => (
+                  <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
+                    <div
+                      onClick={() => setForm(f => ({ ...f, [key]: !f[key] }))}
+                      style={{ width: 18, height: 18, borderRadius: 4, border: `2px solid ${form[key] ? '#0086A3' : '#2a2a2a'}`, background: form[key] ? '#0086A3' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.15s', flexShrink: 0 }}
+                    >
+                      {form[key] && (
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                          <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </div>
+                    <span style={{ color: '#f0f0f0', fontSize: 14 }}>{label}</span>
+                  </label>
+                ))}
+              </div>
             </div>
 
             {/* Buttons */}
-            <div className="flex gap-3">
-              <button
-                type="submit"
-                disabled={saving}
-                className="bg-[#0086A3] hover:bg-[#006f87] disabled:opacity-50 text-white
-                           font-semibold rounded px-4 py-2 transition-colors text-sm"
-              >
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button type="submit" disabled={saving}
+                style={{ background: saving ? '#005f75' : '#0086A3', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 20px', fontSize: 14, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', transition: 'background 0.15s' }}>
                 {saving ? 'Saving…' : 'Save'}
               </button>
-              <button
-                type="button"
-                onClick={closeForm}
-                className="bg-[#111111] border border-[#333333] hover:border-[#7A7A7A] text-[#7A7A7A]
-                           hover:text-white rounded px-4 py-2 transition-colors text-sm"
-              >
+              <button type="button" onClick={closeForm}
+                style={{ background: 'transparent', color: '#7A7A7A', border: '1px solid #2a2a2a', borderRadius: 8, padding: '9px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#555'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = '#7A7A7A'; e.currentTarget.style.borderColor = '#2a2a2a'; }}>
                 Cancel
               </button>
             </div>
@@ -286,50 +220,41 @@ export default function LiftColorPage() {
 
         {/* Color list */}
         {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="w-8 h-8 border-4 border-[#0086A3] border-t-transparent rounded-full animate-spin" />
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '64px 0' }}>
+            <div className="spinner" />
           </div>
         ) : colors.length === 0 ? (
-          <p className="text-[#7A7A7A] text-sm text-center py-12">No colors yet. Add one above.</p>
+          <p style={{ color: '#555', fontSize: 13, textAlign: 'center', padding: '48px 0' }}>No colors yet. Add one above.</p>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {colors.map(c => (
-              <div
-                key={c.id}
-                className="bg-[#1e1e1e] rounded-lg border border-[#333333] px-4 py-3 flex items-center gap-3"
-              >
+              <div key={c.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px' }}>
                 {/* Swatch */}
-                <div
-                  className="w-10 h-10 rounded shrink-0 border border-[#333333]"
-                  style={{ backgroundColor: c.color_hex }}
-                />
+                <div style={{ width: 40, height: 40, borderRadius: 8, background: c.color_hex, flexShrink: 0, border: '1px solid rgba(255,255,255,0.08)' }} />
+
                 {/* Name + badges */}
-                <div className="flex-1 flex items-center gap-2 flex-wrap">
-                  <span className="text-white text-sm font-medium">{c.name}</span>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ color: '#f0f0f0', fontSize: 14, fontWeight: 500 }}>{c.name}</span>
                   {c.has_2high && (
-                    <span className="text-[10px] bg-[#0086A3]/20 text-[#0086A3] border border-[#0086A3]/40 px-1.5 py-0.5 rounded-full">
-                      2H
-                    </span>
+                    <span style={{ fontSize: 10, background: 'rgba(0,134,163,0.15)', color: '#0086A3', border: '1px solid rgba(0,134,163,0.35)', borderRadius: 20, padding: '2px 7px' }}>2H</span>
                   )}
                   {c.has_3high && (
-                    <span className="text-[10px] bg-purple-900/30 text-purple-400 border border-purple-700/40 px-1.5 py-0.5 rounded-full">
-                      3H
-                    </span>
+                    <span style={{ fontSize: 10, background: 'rgba(147,51,234,0.12)', color: '#a78bfa', border: '1px solid rgba(147,51,234,0.3)', borderRadius: 20, padding: '2px 7px' }}>3H</span>
                   )}
                 </div>
+
                 {/* Actions */}
-                <div className="flex gap-2 shrink-0">
-                  <button
-                    onClick={() => openEdit(c)}
-                    className="text-[#7A7A7A] hover:text-[#0086A3] text-sm transition-colors px-2 py-1"
-                  >
+                <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                  <button onClick={() => openEdit(c)}
+                    style={{ color: '#555', background: 'none', border: 'none', fontSize: 13, cursor: 'pointer', padding: '6px 10px', borderRadius: 6, transition: 'color 0.15s' }}
+                    onMouseEnter={e => (e.currentTarget.style.color = '#0086A3')}
+                    onMouseLeave={e => (e.currentTarget.style.color = '#555')}>
                     Edit
                   </button>
-                  <button
-                    onClick={() => handleDelete(c.id)}
-                    disabled={deletingId === c.id}
-                    className="text-red-500/70 hover:text-red-400 disabled:opacity-40 text-sm transition-colors px-2 py-1"
-                  >
+                  <button onClick={() => handleDelete(c.id)} disabled={deletingId === c.id}
+                    style={{ color: 'rgba(248,113,113,0.7)', background: 'none', border: 'none', fontSize: 13, cursor: deletingId === c.id ? 'not-allowed' : 'pointer', padding: '6px 10px', borderRadius: 6, transition: 'color 0.15s', opacity: deletingId === c.id ? 0.5 : 1 }}
+                    onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
+                    onMouseLeave={e => (e.currentTarget.style.color = 'rgba(248,113,113,0.7)')}>
                     {deletingId === c.id ? '…' : 'Delete'}
                   </button>
                 </div>
