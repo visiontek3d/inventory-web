@@ -16,28 +16,17 @@ export default function LandingPage() {
 
       {/* Cards */}
       <div style={{ display: 'flex', flexDirection: 'row', gap: 20, flexWrap: 'wrap', justifyContent: 'center', width: '100%', maxWidth: 560 }}>
-        <NavCard
-          onClick={() => navigate('/dioramas')}
-          icon={<DioramaIcon />}
-          label="Diorama"
-          description="Scene inventory"
-        />
-        <NavCard
-          onClick={() => navigate('/lifts')}
-          icon={<LiftIcon />}
-          label="Lift"
-          description="Lift inventory"
-        />
+        <NavCard onClick={() => navigate('/dioramas')} icon={<DioramaIcon />} label="Diorama" />
+        <NavCard onClick={() => navigate('/lifts')} icon={<LiftIcon />} label="Lift" />
       </div>
     </div>
   );
 }
 
-function NavCard({ onClick, icon, label, description }: {
+function NavCard({ onClick, icon, label }: {
   onClick: () => void;
   icon: React.ReactNode;
   label: string;
-  description: string;
 }) {
   return (
     <button
@@ -72,7 +61,6 @@ function NavCard({ onClick, icon, label, description }: {
     >
       {icon}
       <span style={{ color: '#fff', fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em' }}>{label}</span>
-      <span style={{ color: '#555', fontSize: 13 }}>{description}</span>
     </button>
   );
 }

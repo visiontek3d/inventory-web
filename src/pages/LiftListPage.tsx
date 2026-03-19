@@ -54,6 +54,10 @@ export default function LiftListPage() {
 
   const variations: Variation[] = ['primary', 'extender'];
 
+  function getSectionTotal(size: SizeTab, variation: Variation): number {
+    return getRows(size, variation).reduce((s, { lift }) => s + lift.qty, 0);
+  }
+
   return (
     <Layout title="Lifts">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
@@ -111,7 +115,12 @@ export default function LiftListPage() {
               const rows = getRows(tab, variation);
               return (
                 <div key={variation} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <p className="section-label">{VARIATION_LABELS[variation]}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <p className="section-label" style={{ margin: 0 }}>{VARIATION_LABELS[variation]}</p>
+                    <span style={{ fontSize: 12, color: '#555' }}>
+                      Total: <span style={{ color: '#0086A3', fontWeight: 600 }}>{getSectionTotal(tab, variation)}</span>
+                    </span>
+                  </div>
                   {rows.length === 0 ? (
                     <p style={{ color: '#555', fontSize: 13, paddingLeft: 8 }}>No items.</p>
                   ) : (
