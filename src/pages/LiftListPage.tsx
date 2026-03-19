@@ -7,10 +7,7 @@ import type { Lift, LiftColor } from '../types';
 type SizeTab = '2high' | '3high';
 type Variation = 'Primary Lift' | 'Extender';
 
-interface LiftRow {
-  lift: Lift;
-  color: LiftColor;
-}
+interface LiftRow { lift: Lift; color: LiftColor; }
 
 export default function LiftListPage() {
   const navigate = useNavigate();
@@ -22,31 +19,25 @@ export default function LiftListPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function load() {
-      setLoading(true);
-      const [{ data: l }, { data: c }] = await Promise.all([
-        supabase.from('lifts').select('*'),
-        supabase.from('lift_colors').select('*').order('sort_order'),
-      ]);
+    Promise.all([
+      supabase.from('lifts').select('*'),
+      supabase.from('lift_colors').select('*').order('sort_order'),
+    ]).then(([{ data: l }, { data: c }]) => {
       if (l) setLifts(l as Lift[]);
       if (c) setColors(c as LiftColor[]);
       setLoading(false);
-    }
-    load();
+    });
   }, []);
 
   async function adjustQty(lift: Lift, delta: number) {
     if (adjusting !== null) return;
     setAdjusting(lift.id);
     setError(null);
-    const { error } = await supabase.rpc('adjust_lift_inventory', {
-      p_lift_id: lift.id,
-      p_delta: delta,
-    });
+    const { error } = await supabase.rpc('adjust_lift_inventory', { p_lift_id: lift.id, p_delta: delta });
     if (error) {
       setError(error.message);
     } else {
-      setLifts(prev => prev.map(l => l.id === lift.id ? { ...l, qty: l.qty + delta } : l));
+      setLifts(prev => prev.map(l => l.id === lift.id ? { ...l, qty: Math.max(0, l.qty + delta) } : l));
     }
     setAdjusting(null);
   }
@@ -57,8 +48,7 @@ export default function LiftListPage() {
       .filter(c => size === '2high' ? c.has_2high : c.has_3high)
       .flatMap(c => {
         const lift = lifts.find(l => l.size === sizeLabel && l.variation === variation && l.color === c.name);
-        if (!lift) return [];
-        return [{ lift, color: c }];
+        return lift ? [{ lift, color: c }] : [];
       });
   }
 
@@ -66,16 +56,29 @@ export default function LiftListPage() {
 
   return (
     <Layout title="Lifts">
-      <div className="max-w-2xl mx-auto w-full p-4 flex flex-col gap-4">
-        {/* Header row with gear icon */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-white font-semibold">Lift Inventory</h2>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
+
+        {/* Top bar: back + gear */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <button
+            onClick={() => navigate('/')}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#555', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', padding: 0, transition: 'color 0.15s' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#555')}
+          >
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Home
+          </button>
           <button
             onClick={() => navigate('/lifts/colors')}
             title="Color Settings"
-            className="text-[#7A7A7A] hover:text-[#0086A3] transition-colors p-1"
+            style={{ color: '#555', background: 'none', border: 'none', cursor: 'pointer', padding: 4, transition: 'color 0.15s' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#0086A3')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#555')}
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                 d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -84,29 +87,22 @@ export default function LiftListPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-[#333333]">
+        <div className="tab-bar">
           {(['2high', '3high'] as SizeTab[]).map(t => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px
-                ${tab === t
-                  ? 'text-[#0086A3] border-[#0086A3]'
-                  : 'text-[#7A7A7A] border-transparent hover:text-white'}`}
-            >
+            <button key={t} onClick={() => setTab(t)} className={`tab ${tab === t ? 'active' : ''}`}>
               {t === '2high' ? '2-High' : '3-High'}
             </button>
           ))}
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="w-8 h-8 border-4 border-[#0086A3] border-t-transparent rounded-full animate-spin" />
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '64px 0' }}>
+            <div className="spinner" />
           </div>
         ) : (
           <>
             {error && (
-              <p className="text-red-400 text-sm bg-red-900/20 border border-red-800 rounded px-3 py-2">
+              <p style={{ color: '#f87171', fontSize: 13, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '10px 14px' }}>
                 {error}
               </p>
             )}
@@ -114,42 +110,33 @@ export default function LiftListPage() {
             {variations.map(variation => {
               const rows = getRows(tab, variation);
               return (
-                <div key={variation} className="flex flex-col gap-2">
-                  <p className="text-[#7A7A7A] text-xs uppercase tracking-wider">{variation}</p>
+                <div key={variation} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <p className="section-label">{variation}</p>
                   {rows.length === 0 ? (
-                    <p className="text-[#7A7A7A] text-sm pl-2">No items.</p>
+                    <p style={{ color: '#555', fontSize: 13, paddingLeft: 8 }}>No items.</p>
                   ) : (
                     rows.map(({ lift, color }) => (
-                      <div
-                        key={lift.id}
-                        className="bg-[#1e1e1e] rounded-lg border border-[#333333] px-4 py-3
-                                   flex items-center gap-3"
-                      >
+                      <div key={lift.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px' }}>
                         {/* Color swatch */}
-                        <div
-                          className="w-9 h-9 rounded shrink-0 border border-[#333333]"
-                          style={{ backgroundColor: color.color_hex }}
-                        />
+                        <div style={{ width: 36, height: 36, borderRadius: 8, background: color.color_hex, flexShrink: 0, border: '1px solid rgba(255,255,255,0.08)' }} />
                         {/* Name */}
-                        <span className="text-white text-sm flex-1">{color.name}</span>
+                        <span style={{ color: '#f0f0f0', fontSize: 14, flex: 1 }}>{color.name}</span>
                         {/* Controls */}
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                           <button
                             onClick={() => adjustQty(lift, -1)}
                             disabled={adjusting !== null || lift.qty <= 0}
-                            className="w-8 h-8 rounded bg-[#111111] border border-[#333333] text-white
-                                       hover:bg-[#0086A3] hover:border-[#0086A3] disabled:opacity-40
-                                       transition-colors font-bold"
+                            className="qty-btn"
                           >
                             −
                           </button>
-                          <span className="text-white font-semibold w-8 text-center">{lift.qty}</span>
+                          <span style={{ color: '#fff', fontWeight: 600, fontSize: 16, width: 32, textAlign: 'center' }}>
+                            {lift.qty}
+                          </span>
                           <button
                             onClick={() => adjustQty(lift, 1)}
                             disabled={adjusting !== null}
-                            className="w-8 h-8 rounded bg-[#111111] border border-[#333333] text-white
-                                       hover:bg-[#0086A3] hover:border-[#0086A3] disabled:opacity-40
-                                       transition-colors font-bold"
+                            className="qty-btn"
                           >
                             +
                           </button>

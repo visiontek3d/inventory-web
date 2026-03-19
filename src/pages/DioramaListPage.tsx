@@ -40,6 +40,19 @@ export default function DioramaListPage() {
   return (
     <Layout title="Dioramas">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
+        {/* Back to home */}
+        <button
+          onClick={() => navigate('/')}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#555', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: 'fit-content', transition: 'color 0.15s' }}
+          onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+          onMouseLeave={e => (e.currentTarget.style.color = '#555')}
+        >
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Home
+        </button>
+
         {/* Search */}
         <input
           type="search"
