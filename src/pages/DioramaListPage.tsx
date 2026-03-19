@@ -6,6 +6,8 @@ import type { Diorama } from '../types';
 
 type Tab = 'instock' | 'oneoff';
 
+const isOneOff = (d: Diorama) => (d.one_off_lift_qty ?? 0) > 0 || (d.one_off_od_qty ?? 0) > 0;
+
 export default function DioramaListPage() {
   const navigate = useNavigate();
   const [dioramas, setDioramas] = useState<Diorama[]>([]);
@@ -14,19 +16,11 @@ export default function DioramaListPage() {
   const [tab, setTab] = useState<Tab>('instock');
 
   useEffect(() => {
-    async function load() {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('dioramas')
-        .select('*')
-        .order('sku');
-      if (!error && data) setDioramas(data as Diorama[]);
+    supabase.from('dioramas').select('*').order('sku').then(({ data }) => {
+      if (data) setDioramas(data as Diorama[]);
       setLoading(false);
-    }
-    load();
+    });
   }, []);
-
-  const isOneOff = (d: Diorama) => (d.one_off_lift_qty ?? 0) > 0 || (d.one_off_od_qty ?? 0) > 0;
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -38,38 +32,30 @@ export default function DioramaListPage() {
   }, [dioramas, search, tab]);
 
   const inStockList = useMemo(() => dioramas.filter(d => !isOneOff(d)), [dioramas]);
-  const oneOffList = useMemo(() => dioramas.filter(d => isOneOff(d)), [dioramas]);
+  const oneOffList  = useMemo(() => dioramas.filter(d => isOneOff(d)), [dioramas]);
 
-  const totalWalls = inStockList.reduce((s, d) => s + (d.walls_qty ?? 0), 0);
-  const totalDoor = inStockList.reduce((s, d) => s + (d.open_door_qty ?? 0), 0);
-  const totalLift = inStockList.reduce((s, d) => s + (d.lift_qty ?? 0), 0);
+  const totalWalls      = inStockList.reduce((s, d) => s + (d.walls_qty ?? 0), 0);
+  const totalDoor       = inStockList.reduce((s, d) => s + (d.open_door_qty ?? 0), 0);
+  const totalLift       = inStockList.reduce((s, d) => s + (d.lift_qty ?? 0), 0);
   const totalOneOffLift = oneOffList.reduce((s, d) => s + (d.one_off_lift_qty ?? 0), 0);
-  const totalOneOffOD = oneOffList.reduce((s, d) => s + (d.one_off_od_qty ?? 0), 0);
+  const totalOneOffOD   = oneOffList.reduce((s, d) => s + (d.one_off_od_qty ?? 0), 0);
 
   return (
     <Layout title="Dioramas">
-      <div className="flex flex-col flex-1 p-4 gap-4 max-w-2xl mx-auto w-full">
+      <div className="flex flex-col gap-4 flex-1">
         {/* Search */}
         <input
           type="search"
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search by SKU or description…"
-          className="bg-[#1e1e1e] border border-[#333333] rounded px-3 py-2 text-white text-sm
-                     focus:outline-none focus:border-[#0086A3] transition-colors w-full"
+          className="input"
         />
 
         {/* Tabs */}
-        <div className="flex border-b border-[#333333]">
+        <div className="tab-bar">
           {(['instock', 'oneoff'] as Tab[]).map(t => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px
-                ${tab === t
-                  ? 'text-[#0086A3] border-[#0086A3]'
-                  : 'text-[#7A7A7A] border-transparent hover:text-white'}`}
-            >
+            <button key={t} onClick={() => setTab(t)} className={`tab ${tab === t ? 'active' : ''}`}>
               {t === 'instock' ? 'In Stock' : 'One Off'}
             </button>
           ))}
@@ -77,27 +63,24 @@ export default function DioramaListPage() {
 
         {/* List */}
         {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="w-8 h-8 border-4 border-[#0086A3] border-t-transparent rounded-full animate-spin" />
-          </div>
+          <div className="flex justify-center py-16"><div className="spinner" /></div>
         ) : filtered.length === 0 ? (
-          <p className="text-[#7A7A7A] text-sm text-center py-12">No dioramas found.</p>
+          <p className="text-[#555] text-sm text-center py-16">No dioramas found.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {filtered.map(d => (
               <button
                 key={d.sku}
                 onClick={() => navigate(`/dioramas/${encodeURIComponent(d.sku)}`)}
-                className={`bg-[#1e1e1e] rounded-lg border border-[#333333] hover:border-[#0086A3]
-                            transition-colors text-left flex items-center gap-3 p-3
-                            ${d.carry_stock ? 'border-l-4 border-l-[#0086A3]' : ''}`}
+                className={`card card-interactive text-left flex items-center gap-3 p-3 w-full
+                            ${d.carry_stock ? 'border-l-[3px] border-l-[#0086A3]' : ''}`}
               >
                 {/* Thumbnail */}
-                <div className="shrink-0 w-14 h-14 rounded bg-[#111111] overflow-hidden border border-[#333333] flex items-center justify-center">
+                <div className="shrink-0 w-12 h-12 rounded-lg bg-[#111] overflow-hidden border border-[#222] flex items-center justify-center">
                   {d.photo_url ? (
                     <img src={d.photo_url} alt={d.sku} className="w-full h-full object-cover" />
                   ) : (
-                    <svg className="w-6 h-6 text-[#333333]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-[#333]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                         d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
@@ -107,20 +90,20 @@ export default function DioramaListPage() {
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <p className="text-white font-semibold text-sm truncate">{d.sku}</p>
-                  <p className="text-[#7A7A7A] text-xs truncate">{d.description}</p>
+                  <p className="text-[#555] text-xs truncate mt-0.5">{d.description}</p>
                 </div>
 
-                {/* Qty badges */}
+                {/* Badges */}
                 {tab === 'instock' ? (
-                  <div className="flex gap-1 shrink-0">
-                    <QtyBadge label="W" value={d.walls_qty ?? 0} />
-                    <QtyBadge label="D" value={d.open_door_qty ?? 0} />
-                    <QtyBadge label="L" value={d.lift_qty ?? 0} />
+                  <div className="flex gap-1.5 shrink-0">
+                    <Badge label="W" value={d.walls_qty ?? 0} />
+                    <Badge label="D" value={d.open_door_qty ?? 0} />
+                    <Badge label="L" value={d.lift_qty ?? 0} />
                   </div>
                 ) : (
-                  <div className="flex gap-1 shrink-0">
-                    <QtyBadge label="LV" value={d.one_off_lift_qty ?? 0} />
-                    <QtyBadge label="OD" value={d.one_off_od_qty ?? 0} />
+                  <div className="flex gap-1.5 shrink-0">
+                    <Badge label="LV" value={d.one_off_lift_qty ?? 0} />
+                    <Badge label="OD" value={d.one_off_od_qty ?? 0} />
                   </div>
                 )}
               </button>
@@ -128,21 +111,22 @@ export default function DioramaListPage() {
           </div>
         )}
 
-        {/* Totals bar */}
+        {/* Totals */}
         {!loading && (
-          <div className="bg-[#1e1e1e] border border-[#333333] rounded-lg px-4 py-3 flex items-center gap-4 text-sm mt-auto">
-            <span className="text-[#7A7A7A]">Totals:</span>
+          <div className="card px-4 py-3 flex items-center gap-4 text-sm mt-auto">
+            <span className="text-[#444] font-medium">Totals</span>
+            <div className="w-px h-4 bg-[#222]" />
             {tab === 'instock' ? (
-              <>
-                <TotalItem label="W" value={totalWalls} />
-                <TotalItem label="D" value={totalDoor} />
-                <TotalItem label="L" value={totalLift} />
-              </>
+              <div className="flex gap-4">
+                <Total label="Walls" value={totalWalls} />
+                <Total label="Door" value={totalDoor} />
+                <Total label="Lift" value={totalLift} />
+              </div>
             ) : (
-              <>
-                <TotalItem label="LV" value={totalOneOffLift} />
-                <TotalItem label="OD" value={totalOneOffOD} />
-              </>
+              <div className="flex gap-4">
+                <Total label="Lift Ver." value={totalOneOffLift} />
+                <Total label="Open Door" value={totalOneOffOD} />
+              </div>
             )}
           </div>
         )}
@@ -151,9 +135,9 @@ export default function DioramaListPage() {
       {/* FAB */}
       <button
         onClick={() => navigate('/dioramas/new')}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-[#0086A3] hover:bg-[#006f87] text-white
-                   rounded-full shadow-lg flex items-center justify-center text-2xl font-bold
-                   transition-colors z-10"
+        className="fixed bottom-8 right-8 w-12 h-12 bg-[#0086A3] hover:bg-[#0098b8] text-white
+                   rounded-full shadow-xl flex items-center justify-center text-2xl font-light
+                   transition-all duration-150 z-10 border border-[#00a0bf]"
         aria-label="Add diorama"
       >
         +
@@ -162,20 +146,20 @@ export default function DioramaListPage() {
   );
 }
 
-function QtyBadge({ label, value }: { label: string; value: number }) {
+function Badge({ label, value }: { label: string; value: number }) {
   return (
-    <span className="flex flex-col items-center bg-[#111111] border border-[#333333] rounded px-2 py-1 min-w-[36px]">
-      <span className="text-[#7A7A7A] text-[10px] leading-none">{label}</span>
-      <span className="text-white font-semibold text-sm leading-tight">{value}</span>
+    <span className="badge">
+      <span className="badge-label">{label}</span>
+      <span className="badge-value">{value}</span>
     </span>
   );
 }
 
-function TotalItem({ label, value }: { label: string; value: number }) {
+function Total({ label, value }: { label: string; value: number }) {
   return (
-    <span className="text-white">
-      <span className="text-[#7A7A7A]">{label}: </span>
-      {value}
+    <span className="text-[#aaa] text-sm">
+      <span className="text-[#444] mr-1">{label}:</span>
+      <span className="text-white font-semibold">{value}</span>
     </span>
   );
 }

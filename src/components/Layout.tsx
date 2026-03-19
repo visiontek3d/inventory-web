@@ -20,31 +20,32 @@ export default function Layout({ children, title }: LayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#111111] flex flex-col">
-      {/* Header */}
-      <header className="bg-black flex items-center px-4 py-2 gap-4 shrink-0">
-        <img
-          src="/logo.png"
-          alt="VisionTek3D Logo"
-          className="h-10 w-auto object-contain"
-        />
-        <span className="text-white font-bold text-lg flex-1">
-          {title ?? 'Inventory Management'}
-        </span>
-        <span className="text-[#7A7A7A] text-sm hidden sm:block truncate max-w-[200px]">
-          {userEmail}
-        </span>
-        <button
-          onClick={handleSignOut}
-          className="text-sm text-white bg-[#1e1e1e] border border-[#333333] rounded px-3 py-1 hover:bg-[#2a2a2a] transition-colors shrink-0"
-        >
-          Sign Out
-        </button>
+    <div className="min-h-screen bg-[#0d0d0d] flex flex-col">
+      {/* Full-width header */}
+      <header className="bg-black border-b border-[#1f1f1f] shrink-0 w-full">
+        <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center gap-3">
+          <img src="/logo.png" alt="VisionTek3D" className="h-9 w-auto object-contain shrink-0" />
+          <span className="text-white font-bold text-base tracking-wide flex-1 truncate">
+            {title ?? 'Inventory Management'}
+          </span>
+          <span className="text-[#555] text-xs hidden sm:block truncate max-w-[180px]">
+            {userEmail}
+          </span>
+          <button
+            onClick={handleSignOut}
+            className="text-xs text-[#aaa] hover:text-white border border-[#2a2a2a] hover:border-[#0086A3]
+                       rounded px-3 py-1.5 transition-all duration-150 shrink-0"
+          >
+            Sign Out
+          </button>
+        </div>
       </header>
 
-      {/* Main content */}
+      {/* Centered content */}
       <main className="flex-1 flex flex-col">
-        {children}
+        <div className="max-w-4xl mx-auto w-full px-4 py-6 flex flex-col flex-1">
+          {children}
+        </div>
       </main>
     </div>
   );
