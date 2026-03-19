@@ -45,11 +45,10 @@ export default function DioramaAddEditPage() {
       setFormSku(d.sku);
       setDescription(d.description);
       setCarryStock(d.carry_stock);
-      setIsOneOff(d.is_one_off);
-      setQtyWalls(d.qty_walls);
-      setQtyDoor(d.qty_open_door);
-      setQtyLift(d.qty_lift);
-      setOneOffQty(d.one_off_qty);
+      setQtyWalls(d.walls_qty ?? 0);
+      setQtyDoor(d.open_door_qty ?? 0);
+      setQtyLift(d.lift_qty ?? 0);
+      setOneOffQty(d.one_off_qty ?? 0);
       setExistingPhotoUrl(d.photo_url);
       setLoading(false);
     }

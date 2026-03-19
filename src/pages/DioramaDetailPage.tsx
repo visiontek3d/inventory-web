@@ -14,6 +14,9 @@ export default function DioramaDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   const decodedSku = decodeURIComponent(sku ?? '');
+  const isOneOff = diorama
+    ? (diorama.one_off_lift_qty ?? 0) > 0 || (diorama.one_off_od_qty ?? 0) > 0
+    : false;
 
   useEffect(() => {
     if (!decodedSku) return;
@@ -35,6 +38,16 @@ export default function DioramaDetailPage() {
     load();
   }, [decodedSku]);
 
+  async function refreshTransactions() {
+    const { data: t } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('sku', decodedSku)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (t) setTransactions(t as Transaction[]);
+  }
+
   async function adjustInStock(wallsDelta: number, doorDelta: number, liftDelta: number) {
     if (!diorama || adjusting) return;
     setAdjusting(true);
@@ -50,41 +63,33 @@ export default function DioramaDetailPage() {
     } else {
       setDiorama(prev => prev ? {
         ...prev,
-        qty_walls: prev.qty_walls + wallsDelta,
-        qty_open_door: prev.qty_open_door + doorDelta,
-        qty_lift: prev.qty_lift + liftDelta,
+        walls_qty: Math.max(0, prev.walls_qty + wallsDelta),
+        open_door_qty: Math.max(0, prev.open_door_qty + doorDelta),
+        lift_qty: Math.max(0, prev.lift_qty + liftDelta),
       } : prev);
-      // Refresh transactions
-      const { data: t } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('sku', decodedSku)
-        .order('created_at', { ascending: false })
-        .limit(50);
-      if (t) setTransactions(t as Transaction[]);
+      await refreshTransactions();
     }
     setAdjusting(false);
   }
 
-  async function adjustOneOff(delta: number) {
+  async function adjustOneOff(liftDelta: number, odDelta: number) {
     if (!diorama || adjusting) return;
     setAdjusting(true);
     setError(null);
     const { error } = await supabase.rpc('adjust_one_off_inventory', {
       p_sku: decodedSku,
-      p_delta: delta,
+      p_lift_delta: liftDelta,
+      p_od_delta: odDelta,
     });
     if (error) {
       setError(error.message);
     } else {
-      setDiorama(prev => prev ? { ...prev, one_off_qty: prev.one_off_qty + delta } : prev);
-      const { data: t } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('sku', decodedSku)
-        .order('created_at', { ascending: false })
-        .limit(50);
-      if (t) setTransactions(t as Transaction[]);
+      setDiorama(prev => prev ? {
+        ...prev,
+        one_off_lift_qty: Math.max(0, prev.one_off_lift_qty + liftDelta),
+        one_off_od_qty: Math.max(0, prev.one_off_od_qty + odDelta),
+      } : prev);
+      await refreshTransactions();
     }
     setAdjusting(false);
   }
@@ -153,7 +158,7 @@ export default function DioramaDetailPage() {
                 Carry Stock
               </span>
             )}
-            {diorama.is_one_off && (
+            {isOneOff && (
               <span className="bg-purple-900/30 text-purple-400 text-xs px-2 py-0.5 rounded-full border border-purple-700/40">
                 One Off
               </span>
@@ -168,16 +173,25 @@ export default function DioramaDetailPage() {
           </p>
         )}
 
-        {diorama.is_one_off ? (
+        {isOneOff ? (
           <div className="bg-[#1e1e1e] rounded-lg border border-[#333333] p-4">
-            <p className="text-[#7A7A7A] text-xs uppercase tracking-wider mb-3">Quantity</p>
-            <QtyControl
-              label="One Off Qty"
-              value={diorama.one_off_qty}
-              disabled={adjusting}
-              onDecrement={() => adjustOneOff(-1)}
-              onIncrement={() => adjustOneOff(1)}
-            />
+            <p className="text-[#7A7A7A] text-xs uppercase tracking-wider mb-3">One Off Quantities</p>
+            <div className="flex flex-col gap-3">
+              <QtyControl
+                label="Lift Version"
+                value={diorama.one_off_lift_qty ?? 0}
+                disabled={adjusting}
+                onDecrement={() => adjustOneOff(-1, 0)}
+                onIncrement={() => adjustOneOff(1, 0)}
+              />
+              <QtyControl
+                label="Open Door"
+                value={diorama.one_off_od_qty ?? 0}
+                disabled={adjusting}
+                onDecrement={() => adjustOneOff(0, -1)}
+                onIncrement={() => adjustOneOff(0, 1)}
+              />
+            </div>
           </div>
         ) : (
           <div className="bg-[#1e1e1e] rounded-lg border border-[#333333] p-4">
@@ -185,21 +199,21 @@ export default function DioramaDetailPage() {
             <div className="flex flex-col gap-3">
               <QtyControl
                 label="Walls"
-                value={diorama.qty_walls}
+                value={diorama.walls_qty ?? 0}
                 disabled={adjusting}
                 onDecrement={() => adjustInStock(-1, 0, 0)}
                 onIncrement={() => adjustInStock(1, 0, 0)}
               />
               <QtyControl
                 label="Open Door"
-                value={diorama.qty_open_door}
+                value={diorama.open_door_qty ?? 0}
                 disabled={adjusting}
                 onDecrement={() => adjustInStock(0, -1, 0)}
                 onIncrement={() => adjustInStock(0, 1, 0)}
               />
               <QtyControl
                 label="Lift"
-                value={diorama.qty_lift}
+                value={diorama.lift_qty ?? 0}
                 disabled={adjusting}
                 onDecrement={() => adjustInStock(0, 0, -1)}
                 onIncrement={() => adjustInStock(0, 0, 1)}
@@ -230,7 +244,7 @@ export default function DioramaDetailPage() {
                       <td className="py-1.5 text-[#7A7A7A] text-xs whitespace-nowrap">
                         {new Date(tx.created_at).toLocaleDateString()} {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </td>
-                      <td className="py-1.5 text-white">{tx.type}</td>
+                      <td className="py-1.5 text-white">{tx.component}</td>
                       <td className={`py-1.5 text-right font-semibold ${tx.delta >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                         {tx.delta >= 0 ? '+' : ''}{tx.delta}
                       </td>
@@ -260,7 +274,7 @@ interface QtyControlProps {
 function QtyControl({ label, value, disabled, onDecrement, onIncrement }: QtyControlProps) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-white text-sm w-24 shrink-0">{label}</span>
+      <span className="text-white text-sm w-28 shrink-0">{label}</span>
       <button
         onClick={onDecrement}
         disabled={disabled || value <= 0}

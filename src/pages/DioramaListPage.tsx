@@ -26,22 +26,25 @@ export default function DioramaListPage() {
     load();
   }, []);
 
+  const isOneOff = (d: Diorama) => (d.one_off_lift_qty ?? 0) > 0 || (d.one_off_od_qty ?? 0) > 0;
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return dioramas.filter(d => {
       const matchesSearch = !q || d.sku.toLowerCase().includes(q) || d.description.toLowerCase().includes(q);
-      const matchesTab = tab === 'instock' ? !d.is_one_off : d.is_one_off;
+      const matchesTab = tab === 'instock' ? !isOneOff(d) : isOneOff(d);
       return matchesSearch && matchesTab;
     });
   }, [dioramas, search, tab]);
 
-  const inStockList = useMemo(() => dioramas.filter(d => !d.is_one_off), [dioramas]);
-  const oneOffList = useMemo(() => dioramas.filter(d => d.is_one_off), [dioramas]);
+  const inStockList = useMemo(() => dioramas.filter(d => !isOneOff(d)), [dioramas]);
+  const oneOffList = useMemo(() => dioramas.filter(d => isOneOff(d)), [dioramas]);
 
-  const totalWalls = inStockList.reduce((s, d) => s + d.qty_walls, 0);
-  const totalDoor = inStockList.reduce((s, d) => s + d.qty_open_door, 0);
-  const totalLift = inStockList.reduce((s, d) => s + d.qty_lift, 0);
-  const totalOneOff = oneOffList.reduce((s, d) => s + d.one_off_qty, 0);
+  const totalWalls = inStockList.reduce((s, d) => s + (d.walls_qty ?? 0), 0);
+  const totalDoor = inStockList.reduce((s, d) => s + (d.open_door_qty ?? 0), 0);
+  const totalLift = inStockList.reduce((s, d) => s + (d.lift_qty ?? 0), 0);
+  const totalOneOffLift = oneOffList.reduce((s, d) => s + (d.one_off_lift_qty ?? 0), 0);
+  const totalOneOffOD = oneOffList.reduce((s, d) => s + (d.one_off_od_qty ?? 0), 0);
 
   return (
     <Layout title="Dioramas">
@@ -110,13 +113,14 @@ export default function DioramaListPage() {
                 {/* Qty badges */}
                 {tab === 'instock' ? (
                   <div className="flex gap-1 shrink-0">
-                    <QtyBadge label="W" value={d.qty_walls} />
-                    <QtyBadge label="D" value={d.qty_open_door} />
-                    <QtyBadge label="L" value={d.qty_lift} />
+                    <QtyBadge label="W" value={d.walls_qty ?? 0} />
+                    <QtyBadge label="D" value={d.open_door_qty ?? 0} />
+                    <QtyBadge label="L" value={d.lift_qty ?? 0} />
                   </div>
                 ) : (
-                  <div className="shrink-0">
-                    <QtyBadge label="Qty" value={d.one_off_qty} />
+                  <div className="flex gap-1 shrink-0">
+                    <QtyBadge label="LV" value={d.one_off_lift_qty ?? 0} />
+                    <QtyBadge label="OD" value={d.one_off_od_qty ?? 0} />
                   </div>
                 )}
               </button>
@@ -135,7 +139,10 @@ export default function DioramaListPage() {
                 <TotalItem label="L" value={totalLift} />
               </>
             ) : (
-              <TotalItem label="One Off" value={totalOneOff} />
+              <>
+                <TotalItem label="LV" value={totalOneOffLift} />
+                <TotalItem label="OD" value={totalOneOffOD} />
+              </>
             )}
           </div>
         )}

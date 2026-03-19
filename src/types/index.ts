@@ -1,20 +1,23 @@
 export interface Diorama {
+  id: number;
   sku: string;
   description: string;
   photo_url: string | null;
-  qty_walls: number;
-  qty_open_door: number;
-  qty_lift: number;
-  carry_stock: boolean;
-  is_one_off: boolean;
+  walls_qty: number;
+  open_door_qty: number;
+  lift_qty: number;
   one_off_qty: number;
+  one_off_lift_qty: number;
+  one_off_od_qty: number;
+  carry_stock: boolean;
+  created_at: string;
 }
 
 export interface Transaction {
   id: number;
   sku: string;
+  component: string;
   delta: number;
-  type: string;
   user_email: string | null;
   created_at: string;
 }
