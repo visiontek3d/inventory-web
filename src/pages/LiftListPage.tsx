@@ -5,7 +5,8 @@ import { supabase } from '../lib/supabase';
 import type { Lift, LiftColor } from '../types';
 
 type SizeTab = '2high' | '3high';
-type Variation = 'Primary Lift' | 'Extender';
+type Variation = 'primary' | 'extender';
+const VARIATION_LABELS: Record<Variation, string> = { primary: 'Primary Lift', extender: 'Extender' };
 
 interface LiftRow { lift: Lift; color: LiftColor; }
 
@@ -43,16 +44,15 @@ export default function LiftListPage() {
   }
 
   function getRows(size: SizeTab, variation: Variation): LiftRow[] {
-    const sizeLabel = size === '2high' ? '2-High' : '3-High';
     return colors
       .filter(c => size === '2high' ? c.has_2high : c.has_3high)
       .flatMap(c => {
-        const lift = lifts.find(l => l.size === sizeLabel && l.variation === variation && l.color === c.name);
+        const lift = lifts.find(l => l.size === size && l.variation === variation && l.color === c.name);
         return lift ? [{ lift, color: c }] : [];
       });
   }
 
-  const variations: Variation[] = ['Primary Lift', 'Extender'];
+  const variations: Variation[] = ['primary', 'extender'];
 
   return (
     <Layout title="Lifts">
@@ -111,7 +111,7 @@ export default function LiftListPage() {
               const rows = getRows(tab, variation);
               return (
                 <div key={variation} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <p className="section-label">{variation}</p>
+                  <p className="section-label">{VARIATION_LABELS[variation]}</p>
                   {rows.length === 0 ? (
                     <p style={{ color: '#555', fontSize: 13, paddingLeft: 8 }}>No items.</p>
                   ) : (
