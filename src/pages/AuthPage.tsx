@@ -14,6 +14,15 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  async function handleGoogleSignIn() {
+    setError(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) setError(error.message);
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
@@ -84,6 +93,23 @@ export default function AuthPage() {
             {loading ? 'Please wait…' : mode === 'signin' ? 'Sign In' : 'Create Account'}
           </button>
         </form>
+
+        {/* Divider */}
+        <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ flex: 1, height: 1, background: '#2a2a2a' }} />
+          <span style={{ color: '#555', fontSize: 12 }}>or</span>
+          <div style={{ flex: 1, height: 1, background: '#2a2a2a' }} />
+        </div>
+
+        {/* Google */}
+        <button
+          onClick={handleGoogleSignIn}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: '#fff', color: '#3c4043', border: '1px solid #ddd', borderRadius: 8, padding: '10px', fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'background 0.15s' }}
+          onMouseEnter={e => (e.currentTarget.style.background = '#f5f5f5')}
+          onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
+          <span style={{ fontSize: 17, fontWeight: 700, color: '#4285F4', lineHeight: 1 }}>G</span>
+          Continue with Google
+        </button>
 
         <button
           onClick={() => { setMode(m => m === 'signin' ? 'signup' : 'signin'); setError(null); setMessage(null); }}
