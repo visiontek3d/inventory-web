@@ -1,6 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 
+const S = {
+  input: { background: '#161616', border: '1px solid #2a2a2a', borderRadius: 7, color: '#f0f0f0', padding: '10px 12px', fontSize: 14, width: '100%', outline: 'none', boxSizing: 'border-box' } as React.CSSProperties,
+  label: { color: '#7A7A7A', fontSize: 12, fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase' as const, marginBottom: 6, display: 'block' },
+};
+
 export default function AuthPage() {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
@@ -14,7 +19,6 @@ export default function AuthPage() {
     setError(null);
     setMessage(null);
     setLoading(true);
-
     try {
       if (mode === 'signin') {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -32,79 +36,60 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#111111] flex items-center justify-center p-4">
-      <div className="w-full max-w-sm bg-[#1e1e1e] rounded-lg border border-[#333333] p-8 flex flex-col items-center gap-6">
-        {/* Logo */}
-        <img
-          src="/logo.png"
-          alt="VisionTek3D Logo"
-          className="w-32 h-32 object-contain"
-        />
+    <div style={{ minHeight: '100vh', background: '#0d0d0d', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={{ width: '100%', maxWidth: 360, background: '#1a1a1a', border: '1px solid #222', borderRadius: 14, padding: '36px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
 
-        <div className="text-center">
-          <h1 className="text-white text-2xl font-bold">Inventory Management</h1>
-          <p className="text-[#7A7A7A] text-sm mt-1">VisionTek3D</p>
+        <img src="/logo.png" alt="VisionTek3D" style={{ width: 96, height: 96, objectFit: 'contain' }} />
+
+        <div style={{ textAlign: 'center' }}>
+          <h1 style={{ color: '#f0f0f0', fontSize: 22, fontWeight: 700, margin: 0 }}>Inventory Management</h1>
+          <p style={{ color: '#555', fontSize: 13, margin: '4px 0 0' }}>
+            {mode === 'signin' ? 'Sign in to your account' : 'Create a new account'}
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <label className="text-[#7A7A7A] text-sm" htmlFor="email">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="bg-[#111111] border border-[#333333] rounded px-3 py-2 text-white text-sm
-                         focus:outline-none focus:border-[#0086A3] transition-colors"
-              placeholder="you@example.com"
-            />
+        <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <label style={S.label} htmlFor="email">Email</label>
+            <input id="email" type="email" required value={email} onChange={e => setEmail(e.target.value)}
+              style={S.input} placeholder="you@example.com" autoCapitalize="none"
+              onFocus={e => (e.target.style.borderColor = '#0086A3')}
+              onBlur={e => (e.target.style.borderColor = '#2a2a2a')} />
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-[#7A7A7A] text-sm" htmlFor="password">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              required
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="bg-[#111111] border border-[#333333] rounded px-3 py-2 text-white text-sm
-                         focus:outline-none focus:border-[#0086A3] transition-colors"
-              placeholder="••••••••"
-            />
+          <div>
+            <label style={S.label} htmlFor="password">Password</label>
+            <input id="password" type="password" required value={password} onChange={e => setPassword(e.target.value)}
+              style={S.input} placeholder="••••••••"
+              onFocus={e => (e.target.style.borderColor = '#0086A3')}
+              onBlur={e => (e.target.style.borderColor = '#2a2a2a')} />
           </div>
 
           {error && (
-            <p className="text-red-400 text-sm bg-red-900/20 border border-red-800 rounded px-3 py-2">
+            <p style={{ color: '#f87171', fontSize: 13, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '10px 14px', margin: 0 }}>
               {error}
             </p>
           )}
 
           {message && (
-            <p className="text-green-400 text-sm bg-green-900/20 border border-green-800 rounded px-3 py-2">
+            <p style={{ color: '#4ade80', fontSize: 13, background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)', borderRadius: 8, padding: '10px 14px', margin: 0 }}>
               {message}
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-[#0086A3] hover:bg-[#006f87] disabled:opacity-50 text-white font-semibold
-                       rounded px-4 py-2 transition-colors"
-          >
+          <button type="submit" disabled={loading}
+            style={{ background: loading ? '#005f75' : '#0086A3', color: '#fff', border: 'none', borderRadius: 8, padding: '11px', fontSize: 14, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', transition: 'background 0.15s', marginTop: 4 }}
+            onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#0098b8'; }}
+            onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#0086A3'; }}>
             {loading ? 'Please wait…' : mode === 'signin' ? 'Sign In' : 'Create Account'}
           </button>
         </form>
 
         <button
           onClick={() => { setMode(m => m === 'signin' ? 'signup' : 'signin'); setError(null); setMessage(null); }}
-          className="text-[#0086A3] text-sm hover:underline"
-        >
+          style={{ color: '#0086A3', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500 }}
+          onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
+          onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}>
           {mode === 'signin' ? "Don't have an account? Create one" : 'Already have an account? Sign in'}
         </button>
       </div>

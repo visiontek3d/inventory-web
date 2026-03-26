@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ChangeEvent } from 'react';
+import { useEffect, useState, type ChangeEvent } from 'react';
 import Layout from '../components/Layout';
 import { supabase } from '../lib/supabase';
 
@@ -9,6 +9,14 @@ interface CsvRow {
   open_door: number;
   lift: number;
 }
+
+const S = {
+  card: { background: '#1a1a1a', border: '1px solid #222', borderRadius: 10, padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 } as React.CSSProperties,
+  input: { background: '#161616', border: '1px solid #2a2a2a', borderRadius: 7, color: '#f0f0f0', padding: '10px 12px', fontSize: 14, width: '100%', outline: 'none', boxSizing: 'border-box' } as React.CSSProperties,
+  label: { color: '#7A7A7A', fontSize: 12, fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase' as const, marginBottom: 6, display: 'block' },
+  sectionTitle: { color: '#f0f0f0', fontSize: 15, fontWeight: 600, margin: 0 },
+  btn: { background: '#0086A3', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', alignSelf: 'flex-start' } as React.CSSProperties,
+};
 
 export default function SettingsPage() {
   const [desiredStock, setDesiredStock] = useState('');
@@ -23,27 +31,17 @@ export default function SettingsPage() {
   const [importResult, setImportResult] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadSettings() {
-      const { data } = await supabase
-        .from('user_settings')
-        .select('value')
-        .eq('key', 'desired_stock')
-        .single();
-      if (data) setDesiredStock(data.value ?? '');
-    }
-    loadSettings();
+    supabase.from('user_settings').select('value').eq('key', 'desired_stock').single()
+      .then(({ data }) => { if (data) setDesiredStock(data.value ?? ''); });
   }, []);
 
-  async function handleSaveDesiredStock(e: FormEvent) {
+  async function handleSaveDesiredStock(e: React.FormEvent) {
     e.preventDefault();
     setSavingStock(true);
     setStockError(null);
     setDesiredStockSaved(false);
-
-    const { error } = await supabase
-      .from('user_settings')
+    const { error } = await supabase.from('user_settings')
       .upsert({ key: 'desired_stock', value: desiredStock }, { onConflict: 'key' });
-
     if (error) setStockError(error.message);
     else setDesiredStockSaved(true);
     setSavingStock(false);
@@ -51,7 +49,6 @@ export default function SettingsPage() {
 
   function parseCsv(text: string): CsvRow[] {
     const lines = text.trim().split('\n').filter(l => l.trim());
-    // Skip header row if it looks like a header
     const startIdx = lines[0]?.toLowerCase().includes('sku') ? 1 : 0;
     return lines.slice(startIdx).map((line, i) => {
       const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
@@ -59,9 +56,8 @@ export default function SettingsPage() {
       const walls = parseInt(cols[2], 10);
       const open_door = parseInt(cols[3], 10);
       const lift = parseInt(cols[4], 10);
-      if (isNaN(walls) || isNaN(open_door) || isNaN(lift)) {
+      if (isNaN(walls) || isNaN(open_door) || isNaN(lift))
         throw new Error(`Row ${i + startIdx + 1}: Walls, Open Door, and Lift must be numbers.`);
-      }
       return { sku: cols[0], description: cols[1], walls, open_door, lift };
     });
   }
@@ -72,17 +68,11 @@ export default function SettingsPage() {
     setCsvError(null);
     setCsvPreview([]);
     setImportResult(null);
-
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = ev => {
-      try {
-        const rows = parseCsv(ev.target?.result as string);
-        setCsvPreview(rows);
-      } catch (err: unknown) {
-        setCsvError(err instanceof Error ? err.message : 'CSV parse error.');
-      }
+      try { setCsvPreview(parseCsv(ev.target?.result as string)); }
+      catch (err: unknown) { setCsvError(err instanceof Error ? err.message : 'CSV parse error.'); }
     };
     reader.readAsText(file);
   }
@@ -92,171 +82,123 @@ export default function SettingsPage() {
     setImporting(true);
     setCsvError(null);
     setImportResult(null);
-
     const records = csvPreview.map(r => ({
       sku: r.sku,
       description: r.description,
-      qty_walls: r.walls,
-      qty_open_door: r.open_door,
-      qty_lift: r.lift,
+      walls_qty: r.walls,
+      open_door_qty: r.open_door,
+      lift_qty: r.lift,
       carry_stock: false,
-      is_one_off: false,
       one_off_qty: 0,
+      one_off_lift_qty: 0,
+      one_off_od_qty: 0,
       photo_url: null,
     }));
-
-    const { error, count } = await supabase
-      .from('dioramas')
-      .upsert(records, { onConflict: 'sku' })
-      .select();
-
-    if (error) {
-      setCsvError(error.message);
-    } else {
-      setImportResult(`Successfully imported ${count ?? csvPreview.length} diorama(s).`);
-      setCsvFileName(null);
-      setCsvPreview([]);
-    }
+    const { error, count } = await supabase.from('dioramas').upsert(records, { onConflict: 'sku' }).select();
+    if (error) setCsvError(error.message);
+    else { setImportResult(`Successfully imported ${count ?? csvPreview.length} diorama(s).`); setCsvFileName(null); setCsvPreview([]); }
     setImporting(false);
-  }
-
-  async function handleSignOut() {
-    await supabase.auth.signOut();
   }
 
   return (
     <Layout title="Settings">
-      <div className="max-w-lg mx-auto w-full p-4 flex flex-col gap-6">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Desired Stock */}
-        <section className="bg-[#1e1e1e] rounded-lg border border-[#333333] p-4 flex flex-col gap-3">
-          <h2 className="text-white font-semibold">Desired Stock Level</h2>
-          <form onSubmit={handleSaveDesiredStock} className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1">
-              <label className="text-[#7A7A7A] text-sm" htmlFor="desired-stock">
-                Desired quantity per SKU
-              </label>
-              <input
-                id="desired-stock"
-                type="number"
-                min={0}
-                value={desiredStock}
+        <section style={S.card}>
+          <p style={S.sectionTitle}>Desired Stock Level</p>
+          <form onSubmit={handleSaveDesiredStock} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div>
+              <label style={S.label} htmlFor="desired-stock">Desired quantity per SKU</label>
+              <input id="desired-stock" type="number" min={0} value={desiredStock}
                 onChange={e => { setDesiredStock(e.target.value); setDesiredStockSaved(false); }}
-                className="bg-[#111111] border border-[#333333] rounded px-3 py-2 text-white text-sm
-                           focus:outline-none focus:border-[#0086A3] transition-colors w-full"
-                placeholder="e.g. 5"
-              />
+                style={S.input} placeholder="e.g. 5"
+                onFocus={e => (e.target.style.borderColor = '#0086A3')}
+                onBlur={e => (e.target.style.borderColor = '#2a2a2a')} />
             </div>
-            {stockError && (
-              <p className="text-red-400 text-sm">{stockError}</p>
-            )}
-            {desiredStockSaved && (
-              <p className="text-green-400 text-sm">Saved.</p>
-            )}
-            <button
-              type="submit"
-              disabled={savingStock}
-              className="bg-[#0086A3] hover:bg-[#006f87] disabled:opacity-50 text-white
-                         font-semibold rounded px-4 py-2 transition-colors text-sm self-start"
-            >
+            {stockError && <p style={{ color: '#f87171', fontSize: 13, margin: 0 }}>{stockError}</p>}
+            {desiredStockSaved && <p style={{ color: '#4ade80', fontSize: 13, margin: 0 }}>Saved.</p>}
+            <button type="submit" disabled={savingStock} style={{ ...S.btn, opacity: savingStock ? 0.6 : 1 }}>
               {savingStock ? 'Saving…' : 'Save'}
             </button>
           </form>
         </section>
 
         {/* Bulk CSV Import */}
-        <section className="bg-[#1e1e1e] rounded-lg border border-[#333333] p-4 flex flex-col gap-3">
+        <section style={S.card}>
           <div>
-            <h2 className="text-white font-semibold">Bulk Import Dioramas</h2>
-            <p className="text-[#7A7A7A] text-xs mt-1">
-              CSV format: <code className="text-[#0086A3]">SKU, Description, Walls, Open Door, Lift</code>
+            <p style={S.sectionTitle}>Bulk Import Dioramas</p>
+            <p style={{ color: '#555', fontSize: 12, margin: '4px 0 0' }}>
+              CSV format: <span style={{ color: '#0086A3', fontFamily: 'monospace' }}>SKU, Description, Walls, Open Door, Lift</span>
             </p>
           </div>
 
-          <div className="flex flex-col gap-1">
-            <input
-              type="file"
-              accept=".csv,text/csv"
-              onChange={handleCsvChange}
-              className="text-sm text-[#7A7A7A] file:mr-3 file:py-1.5 file:px-3 file:rounded
-                         file:border-0 file:text-sm file:bg-[#0086A3] file:text-white
-                         file:cursor-pointer hover:file:bg-[#006f87]"
-            />
-            {csvFileName && (
-              <p className="text-[#7A7A7A] text-xs">Selected: {csvFileName}</p>
-            )}
+          <div>
+            <input type="file" accept=".csv,text/csv" onChange={handleCsvChange}
+              style={{ fontSize: 13, color: '#7A7A7A', width: '100%' }} />
+            {csvFileName && <p style={{ color: '#555', fontSize: 12, marginTop: 4 }}>Selected: {csvFileName}</p>}
           </div>
 
           {csvError && (
-            <p className="text-red-400 text-sm bg-red-900/20 border border-red-800 rounded px-3 py-2">
+            <p style={{ color: '#f87171', fontSize: 13, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '10px 14px', margin: 0 }}>
               {csvError}
             </p>
           )}
-
           {importResult && (
-            <p className="text-green-400 text-sm bg-green-900/20 border border-green-800 rounded px-3 py-2">
+            <p style={{ color: '#4ade80', fontSize: 13, background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)', borderRadius: 8, padding: '10px 14px', margin: 0 }}>
               {importResult}
             </p>
           )}
 
           {csvPreview.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <p className="text-[#7A7A7A] text-xs">{csvPreview.length} row(s) ready to import:</p>
-              <div className="overflow-x-auto border border-[#333333] rounded">
-                <table className="w-full text-xs">
-                  <thead className="bg-[#111111]">
-                    <tr className="text-[#7A7A7A]">
-                      <th className="text-left px-3 py-2">SKU</th>
-                      <th className="text-left px-3 py-2">Description</th>
-                      <th className="text-right px-3 py-2">W</th>
-                      <th className="text-right px-3 py-2">D</th>
-                      <th className="text-right px-3 py-2">L</th>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <p style={{ color: '#555', fontSize: 12, margin: 0 }}>{csvPreview.length} row(s) ready to import:</p>
+              <div style={{ overflowX: 'auto', border: '1px solid #222', borderRadius: 8 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #222' }}>
+                      {['SKU', 'Description', 'W', 'D', 'L'].map((h, i) => (
+                        <th key={h} style={{ color: '#555', fontWeight: 500, padding: '8px 12px', textAlign: i >= 2 ? 'right' : 'left', background: '#161616' }}>{h}</th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
                     {csvPreview.slice(0, 10).map((row, i) => (
-                      <tr key={i} className="border-t border-[#252525]">
-                        <td className="px-3 py-1.5 text-white font-mono">{row.sku}</td>
-                        <td className="px-3 py-1.5 text-[#7A7A7A] max-w-[150px] truncate">{row.description}</td>
-                        <td className="px-3 py-1.5 text-white text-right">{row.walls}</td>
-                        <td className="px-3 py-1.5 text-white text-right">{row.open_door}</td>
-                        <td className="px-3 py-1.5 text-white text-right">{row.lift}</td>
+                      <tr key={i} style={{ borderBottom: '1px solid #1e1e1e' }}>
+                        <td style={{ padding: '7px 12px', color: '#f0f0f0', fontFamily: 'monospace' }}>{row.sku}</td>
+                        <td style={{ padding: '7px 12px', color: '#7A7A7A', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.description}</td>
+                        <td style={{ padding: '7px 12px', color: '#f0f0f0', textAlign: 'right' }}>{row.walls}</td>
+                        <td style={{ padding: '7px 12px', color: '#f0f0f0', textAlign: 'right' }}>{row.open_door}</td>
+                        <td style={{ padding: '7px 12px', color: '#f0f0f0', textAlign: 'right' }}>{row.lift}</td>
                       </tr>
                     ))}
                     {csvPreview.length > 10 && (
-                      <tr className="border-t border-[#252525]">
-                        <td colSpan={5} className="px-3 py-1.5 text-[#7A7A7A] text-center">
-                          …and {csvPreview.length - 10} more rows
-                        </td>
+                      <tr>
+                        <td colSpan={5} style={{ padding: '7px 12px', color: '#555', textAlign: 'center' }}>…and {csvPreview.length - 10} more rows</td>
                       </tr>
                     )}
                   </tbody>
                 </table>
               </div>
-
-              <button
-                onClick={handleImport}
-                disabled={importing}
-                className="bg-[#0086A3] hover:bg-[#006f87] disabled:opacity-50 text-white
-                           font-semibold rounded px-4 py-2 transition-colors text-sm self-start"
-              >
+              <button onClick={handleImport} disabled={importing} style={{ ...S.btn, opacity: importing ? 0.6 : 1 }}>
                 {importing ? 'Importing…' : `Import ${csvPreview.length} Row(s)`}
               </button>
             </div>
           )}
         </section>
 
-        {/* Sign Out */}
-        <section className="bg-[#1e1e1e] rounded-lg border border-[#333333] p-4 flex flex-col gap-3">
-          <h2 className="text-white font-semibold">Account</h2>
+        {/* Account */}
+        <section style={S.card}>
+          <p style={S.sectionTitle}>Account</p>
           <button
-            onClick={handleSignOut}
-            className="bg-red-900/40 hover:bg-red-900/70 text-red-400 border border-red-800
-                       font-semibold rounded px-4 py-2 transition-colors text-sm self-start"
-          >
+            onClick={() => supabase.auth.signOut()}
+            style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, padding: '9px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', alignSelf: 'flex-start' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.18)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.1)')}>
             Sign Out
           </button>
         </section>
+
       </div>
     </Layout>
   );
