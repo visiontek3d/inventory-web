@@ -90,9 +90,9 @@ export default function DioramaListPage() {
 
         {/* Totals */}
         {!isLoading && (
-          <div className="card" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 16, fontSize: 14 }}>
-            <span style={{ color: '#444', fontWeight: 500 }}>Totals</span>
-            <div style={{ width: 1, height: 16, background: '#222' }} />
+          <div style={{ background: 'rgba(0,134,163,0.08)', border: '1px solid rgba(0,134,163,0.25)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 16, fontSize: 14 }}>
+            <span style={{ color: '#0086A3', fontWeight: 600, fontSize: 12, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Totals</span>
+            <div style={{ width: 1, height: 16, background: 'rgba(0,134,163,0.3)' }} />
             {tab === 'instock' ? (
               <div style={{ display: 'flex', gap: 20 }}>
                 <Total label="Walls" value={totalWalls} />
@@ -183,8 +183,8 @@ function Badge({ label, value }: { label: string; value: number }) {
 function Total({ label, value }: { label: string; value: number }) {
   return (
     <span style={{ fontSize: 13 }}>
-      <span style={{ color: '#444', marginRight: 4 }}>{label}:</span>
-      <span style={{ color: '#fff', fontWeight: 600 }}>{value}</span>
+      <span style={{ color: '#0086A3', marginRight: 4, opacity: 0.7 }}>{label}:</span>
+      <span style={{ color: '#e0f4f8', fontWeight: 700 }}>{value}</span>
     </span>
   );
 }
