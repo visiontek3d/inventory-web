@@ -88,6 +88,26 @@ export default function DioramaListPage() {
           ))}
         </div>
 
+        {/* Totals */}
+        {!isLoading && (
+          <div className="card" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 16, fontSize: 14 }}>
+            <span style={{ color: '#444', fontWeight: 500 }}>Totals</span>
+            <div style={{ width: 1, height: 16, background: '#222' }} />
+            {tab === 'instock' ? (
+              <div style={{ display: 'flex', gap: 20 }}>
+                <Total label="Walls" value={totalWalls} />
+                <Total label="Door" value={totalDoor} />
+                <Total label="Lift" value={totalLift} />
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 20 }}>
+                <Total label="Lift Ver." value={totalOneOffLift} />
+                <Total label="Open Door" value={totalOneOffOD} />
+              </div>
+            )}
+          </div>
+        )}
+
         {/* List */}
         {isLoading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '64px 0' }}>
@@ -145,25 +165,6 @@ export default function DioramaListPage() {
           </div>
         )}
 
-        {/* Totals */}
-        {!isLoading && (
-          <div className="card" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 16, fontSize: 14, marginTop: 'auto' }}>
-            <span style={{ color: '#444', fontWeight: 500 }}>Totals</span>
-            <div style={{ width: 1, height: 16, background: '#222' }} />
-            {tab === 'instock' ? (
-              <div style={{ display: 'flex', gap: 20 }}>
-                <Total label="Walls" value={totalWalls} />
-                <Total label="Door" value={totalDoor} />
-                <Total label="Lift" value={totalLift} />
-              </div>
-            ) : (
-              <div style={{ display: 'flex', gap: 20 }}>
-                <Total label="Lift Ver." value={totalOneOffLift} />
-                <Total label="Open Door" value={totalOneOffOD} />
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
     </Layout>
