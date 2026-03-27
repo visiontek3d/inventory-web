@@ -90,21 +90,22 @@ export default function DioramaListPage() {
 
         {/* Totals */}
         {!isLoading && (
-          <div style={{ background: 'rgba(0,134,163,0.08)', border: '1px solid rgba(0,134,163,0.25)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 16, fontSize: 14 }}>
+          <div style={{ background: 'rgba(0,134,163,0.08)', border: '1px solid rgba(0,134,163,0.25)', borderRadius: 10, padding: '8px 12px', display: 'flex', alignItems: 'center', fontSize: 14 }}>
             <span style={{ color: '#0086A3', fontWeight: 600, fontSize: 12, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Totals</span>
-            <div style={{ width: 1, height: 16, background: 'rgba(0,134,163,0.3)' }} />
-            {tab === 'instock' ? (
-              <div style={{ display: 'flex', gap: 20 }}>
-                <Total label="Walls" value={totalWalls} />
-                <Total label="Door" value={totalDoor} />
-                <Total label="Lift" value={totalLift} />
-              </div>
-            ) : (
-              <div style={{ display: 'flex', gap: 20 }}>
-                <Total label="Lift Ver." value={totalOneOffLift} />
-                <Total label="Open Door" value={totalOneOffOD} />
-              </div>
-            )}
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+              {tab === 'instock' ? (
+                <>
+                  <Total label="W" value={totalWalls} />
+                  <Total label="D" value={totalDoor} />
+                  <Total label="L" value={totalLift} />
+                </>
+              ) : (
+                <>
+                  <Total label="LV" value={totalOneOffLift} />
+                  <Total label="OD" value={totalOneOffOD} />
+                </>
+              )}
+            </div>
           </div>
         )}
 
@@ -182,9 +183,9 @@ function Badge({ label, value }: { label: string; value: number }) {
 
 function Total({ label, value }: { label: string; value: number }) {
   return (
-    <span style={{ fontSize: 13 }}>
-      <span style={{ color: '#0086A3', marginRight: 4, opacity: 0.7 }}>{label}:</span>
-      <span style={{ color: '#e0f4f8', fontWeight: 700 }}>{value}</span>
+    <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', minWidth: 36, padding: '4px 8px' }}>
+      <span style={{ color: '#0086A3', fontSize: 10, lineHeight: 1, opacity: 0.8 }}>{label}</span>
+      <span style={{ color: '#e0f4f8', fontSize: 14, fontWeight: 700, lineHeight: 1.3 }}>{value}</span>
     </span>
   );
 }
