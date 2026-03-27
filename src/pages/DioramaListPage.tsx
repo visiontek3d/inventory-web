@@ -91,7 +91,6 @@ export default function DioramaListPage() {
         {/* Totals */}
         {!isLoading && (
           <div style={{ background: 'rgba(0,134,163,0.08)', border: '1px solid rgba(0,134,163,0.25)', borderRadius: 10, padding: '8px 12px', display: 'flex', alignItems: 'center', fontSize: 14 }}>
-            <span style={{ color: '#0086A3', fontWeight: 600, fontSize: 12, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Totals</span>
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
               {tab === 'instock' ? (
                 <>
