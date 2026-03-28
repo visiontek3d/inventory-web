@@ -31,8 +31,12 @@ export default function SettingsPage() {
   const [importResult, setImportResult] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.from('user_settings').select('value').eq('key', 'desired_stock').single()
-      .then(({ data }) => { if (data) setDesiredStock(data.value ?? ''); });
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from('user_settings').select('desired_stock').eq('user_id', user.id).maybeSingle();
+      if (data) setDesiredStock(data.desired_stock?.toString() ?? '');
+    })();
   }, []);
 
   async function handleSaveDesiredStock(e: React.FormEvent) {
@@ -40,8 +44,10 @@ export default function SettingsPage() {
     setSavingStock(true);
     setStockError(null);
     setDesiredStockSaved(false);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setStockError('Not signed in.'); setSavingStock(false); return; }
     const { error } = await supabase.from('user_settings')
-      .upsert({ key: 'desired_stock', value: desiredStock }, { onConflict: 'key' });
+      .upsert({ user_id: user.id, desired_stock: parseInt(desiredStock, 10) || 0 }, { onConflict: 'user_id' });
     if (error) setStockError(error.message);
     else setDesiredStockSaved(true);
     setSavingStock(false);

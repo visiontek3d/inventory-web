@@ -15,8 +15,10 @@ const fetcher = async () => {
 };
 
 const settingsFetcher = async () => {
-  const { data } = await supabase.from('user_settings').select('value').eq('key', 'desired_stock').single();
-  return parseInt(data?.value ?? '0', 10) || 0;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return 0;
+  const { data } = await supabase.from('user_settings').select('desired_stock').eq('user_id', user.id).maybeSingle();
+  return parseInt(data?.desired_stock ?? '0', 10) || 0;
 };
 
 export default function DioramaListPage() {
