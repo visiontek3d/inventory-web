@@ -7,7 +7,7 @@ export default function LandingPage() {
     <div style={{ minHeight: '100vh', background: '#0d0d0d', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       {/* Logo + heading */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, marginBottom: 48 }}>
-        <img src="/logo.png" alt="VisionTek3D" style={{ width: 280, height: 280, objectFit: 'contain', marginBottom: -20 }} />
+        <img src="/logo.png" alt="VisionTek3D" style={{ width: 336, height: 336, objectFit: 'contain', marginBottom: -40 }} />
         <h1 style={{ color: '#fff', fontSize: 28, fontWeight: 700, letterSpacing: '-0.01em', textAlign: 'center', margin: 0 }}>
           Inventory Management
         </h1>
