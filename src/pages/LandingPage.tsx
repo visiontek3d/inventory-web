@@ -15,8 +15,8 @@ export default function LandingPage() {
 
       {/* Cards */}
       <div style={{ display: 'flex', flexDirection: 'row', gap: 20, flexWrap: 'wrap', justifyContent: 'center', width: '100%', maxWidth: 560 }}>
-        <NavCard onClick={() => navigate('/dioramas')} icon="/diorama-card.jpg" label="Diorama" />
-        <NavCard onClick={() => navigate('/lifts')} icon="/lift-card.jpg" label="Lift" />
+        <NavCard onClick={() => navigate('/dioramas')} icon="/diorama-card.png" label="Diorama" />
+        <NavCard onClick={() => navigate('/lifts')} icon="/lift-card.png" label="Lift" />
       </div>
     </div>
   );
