@@ -16,17 +16,16 @@ export default function LandingPage() {
       {/* Cards */}
       <div style={{ display: 'flex', flexDirection: 'row', gap: 20, flexWrap: 'wrap', justifyContent: 'center', width: '100%', maxWidth: 560 }}>
         <NavCard onClick={() => navigate('/dioramas')} icon="/diorama-card.png" label="Diorama" />
-        <NavCard onClick={() => navigate('/lifts')} icon="/lift-card.png" label="Lift" iconSize="40%" />
+        <NavCard onClick={() => navigate('/lifts')} icon="/lift-card.png" label="Lift" />
       </div>
     </div>
   );
 }
 
-function NavCard({ onClick, icon, label, iconSize = '50%' }: {
+function NavCard({ onClick, icon, label }: {
   onClick: () => void;
   icon: string;
   label: string;
-  iconSize?: string;
 }) {
   return (
     <button
@@ -59,7 +58,7 @@ function NavCard({ onClick, icon, label, iconSize = '50%' }: {
         el.style.boxShadow = '0 2px 12px rgba(0,0,0,0.4)';
       }}
     >
-      <img src={icon} alt={label} style={{ width: iconSize, aspectRatio: '1', objectFit: 'contain', display: 'block', padding: '16px 0 0' }} />
+      <img src={icon} alt={label} style={{ width: '50%', aspectRatio: '1', objectFit: 'contain', display: 'block', padding: '16px 0 0' }} />
       <span style={{ color: '#fff', fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', padding: '14px 0' }}>{label}</span>
     </button>
   );
