@@ -58,7 +58,7 @@ function NavCard({ onClick, icon, label }: {
         el.style.boxShadow = '0 2px 12px rgba(0,0,0,0.4)';
       }}
     >
-      <img src={icon} alt={label} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
+      <img src={icon} alt={label} style={{ width: '50%', aspectRatio: '1', objectFit: 'contain', display: 'block', padding: '16px 0 0' }} />
       <span style={{ color: '#fff', fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', padding: '14px 0' }}>{label}</span>
     </button>
   );
