@@ -83,7 +83,7 @@ export default function DioramaListPage() {
         <div className="tab-bar">
           {(['instock', 'oneoff'] as Tab[]).map(t => (
             <button key={t} onClick={() => setTab(t)} className={`tab ${tab === t ? 'active' : ''}`}>
-              {t === 'instock' ? 'In Stock' : 'One Off'}
+              {t === 'instock' ? 'All' : 'One Off'}
             </button>
           ))}
         </div>
