@@ -54,10 +54,6 @@ export default function DioramaListPage() {
   const totalOneOffLift = oneOffList.reduce((s, d) => s + (d.one_off_lift_qty ?? 0), 0);
   const totalOneOffOD   = oneOffList.reduce((s, d) => s + (d.one_off_od_qty ?? 0), 0);
 
-  const restockTotalW = filtered.reduce((s, d) => s + Math.max(0, desiredStock - d.walls_qty), 0);
-  const restockTotalD = filtered.reduce((s, d) => s + Math.max(0, halfTarget - d.open_door_qty), 0);
-  const restockTotalL = filtered.reduce((s, d) => s + Math.max(0, halfTarget - d.lift_qty), 0);
-
   return (
     <Layout title="Dioramas">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
@@ -110,7 +106,7 @@ export default function DioramaListPage() {
         </div>
 
         {/* Totals */}
-        {!isLoading && (
+        {!isLoading && tab !== 'restock' && (
           <div style={{ background: 'rgba(0,134,163,0.08)', border: '1px solid rgba(0,134,163,0.25)', borderRadius: 10, padding: '8px 12px', display: 'flex', alignItems: 'center', fontSize: 14 }}>
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
               {tab === 'instock' ? (
@@ -119,16 +115,10 @@ export default function DioramaListPage() {
                   <Total label="D" value={totalDoor} />
                   <Total label="L" value={totalLift} />
                 </>
-              ) : tab === 'oneoff' ? (
+              ) : (
                 <>
                   <Total label="LV" value={totalOneOffLift} />
                   <Total label="OD" value={totalOneOffOD} />
-                </>
-              ) : (
-                <>
-                  <Total label="W" value={restockTotalW} restock />
-                  <Total label="D" value={restockTotalD} restock />
-                  <Total label="L" value={restockTotalL} restock />
                 </>
               )}
             </div>
