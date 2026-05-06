@@ -35,7 +35,7 @@ export default function DioramaListPage() {
     return dioramas.filter(d => {
       const matchesSearch = !q || d.sku.toLowerCase().includes(q) || d.description.toLowerCase().includes(q);
       if (!matchesSearch) return false;
-      if (tab === 'instock') return !isOneOff(d);
+      if (tab === 'instock') return true;
       if (tab === 'oneoff') return isOneOff(d);
       if (tab === 'restock') {
         if (!d.carry_stock || desiredStock === 0) return false;
